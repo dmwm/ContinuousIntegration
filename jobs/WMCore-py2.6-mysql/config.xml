@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty>
+      <projectUrl>https://github.com/PerilousApricot/WMCore/</projectUrl>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <name>origin</name>
+        <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
+        <url>git://github.com/PerilousApricot/WMCore.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>**</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <recursiveSubmodules>false</recursiveSubmodules>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <authorOrCommitter>false</authorOrCommitter>
+    <clean>false</clean>
+    <wipeOutWorkspace>false</wipeOutWorkspace>
+    <pruneBranches>false</pruneBranches>
+    <remotePoll>false</remotePoll>
+    <buildChooser class="hudson.plugins.git.util.DefaultBuildChooser"/>
+    <gitTool>Default</gitTool>
+    <submoduleCfg class="list"/>
+    <relativeTargetDir></relativeTargetDir>
+    <excludedRegions></excludedRegions>
+    <excludedUsers></excludedUsers>
+    <gitConfigName></gitConfigName>
+    <gitConfigEmail></gitConfigEmail>
+    <skipTag>false</skipTag>
+    <scmName></scmName>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <com.cloudbees.jenkins.GitHubPushTrigger>
+      <spec></spec>
+    </com.cloudbees.jenkins.GitHubPushTrigger>
+    <hudson.triggers.SCMTrigger>
+      <spec>*/5 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
+set -x
+python setup.py install --prefix=install</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>#export PYTHONPATH=/usr/lib/python2.6/site-packages:$PYTHONPATH
+
+set +x
+. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
+set -x
+
+# bring in testing utilities
+export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
+
+export WMCORE_ROOT=$PWD/install
+
+export PATH=$WMCORE_ROOT/install/bin:$PATH
+
+export PYTHONPATH=$WMCORE_ROOT/lib/python2.6/site-packages:$PYTHONPATH
+export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
+
+#export DBS_CLIENT_CONFIG=/Users/stuartw/projects/Workspace/WMCore/../DBSAPI/dbs.config
+
+set +x 
+. /var/lib/jenkins/WMAgent.secrets
+
+export DATABASE=mysql://${MYSQL_USER}:${MYSQL_PASS}@localhost/WMCore_unit_test
+export DBSOCK=/var/lib/jenkins/jobs/deploy-wmagent/workspace/install/install/mysql/logs/mysql.sock
+
+export COUCHURL=&quot;http://${COUCH_USER}:${COUCH_PASS}@${COUCH_HOST}:${COUCH_PORT}&quot;
+set -x
+
+# working dir includes entire python source - ignore
+perl -p -i -e &apos;s/--cover-inclusive//&apos; setup_test.py
+
+# ensure db exists
+set +x 
+echo &quot;CREATE DATABASE IF NOT EXISTS WMCore_unit_test&quot; | mysql -u ${MYSQL_USER} --password=${MYSQL_PASS} --socket=${DBSOCK}
+set -x
+
+#export NOSE_EXCLUDE=&apos;AlertGenerator&apos;
+
+# timeout tests after 5 mins
+#export NOSE_PROCESSES=1
+#export NOSE_PROCESS_TIMEOUT=300
+#export NOSE_PROCESS_RESTARTWORKER=1
+
+# cover branches but not external python modules
+#perl -p -i -e &apos;s/--cover-inclusive/--cover-branches/&apos; setup_test.py
+
+# run test - force success though - failure stops coverage report
+python setup.py test --buildBotMode=true --reallyDeleteMyDatabaseAfterEveryTest=true || true #--testCertainPath=test/python/WMCore_t/WMBS_t || true</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command># bring in testing utilities
+
+#. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
+
+export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
+
+#export WMCORE_ROOT=$PWD/install
+#export PYTHONPATH=$WMCORE_ROOT/lib/python2.6/site-packages:$PYTHONPATH
+#export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
+
+set +e
+/data/software/bin/coverage xml -i</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder>
+      <factGenerator/>
+    </hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.plugins.cobertura.CoberturaPublisher>
+      <coberturaReportFile>**/coverage.xml</coberturaReportFile>
+      <onlyStable>false</onlyStable>
+      <healthyTarget>
+        <targets class="enum-map" enum-type="hudson.plugins.cobertura.targets.CoverageMetric">
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>LINE</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>50</int>
+          </entry>
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>METHOD</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>80</int>
+          </entry>
+        </targets>
+      </healthyTarget>
+      <unhealthyTarget>
+        <targets class="enum-map" enum-type="hudson.plugins.cobertura.targets.CoverageMetric">
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>LINE</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>0</int>
+          </entry>
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>METHOD</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>0</int>
+          </entry>
+        </targets>
+      </unhealthyTarget>
+      <failingTarget>
+        <targets class="enum-map" enum-type="hudson.plugins.cobertura.targets.CoverageMetric">
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>LINE</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>0</int>
+          </entry>
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>METHOD</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>0</int>
+          </entry>
+        </targets>
+      </failingTarget>
+      <sourceEncoding>ASCII</sourceEncoding>
+    </hudson.plugins.cobertura.CoberturaPublisher>
+    <hudson.tasks.junit.JUnitResultArchiver>
+      <testResults>**/nosetests.xml</testResults>
+      <keepLongStdio>false</keepLongStdio>
+      <testDataPublishers/>
+    </hudson.tasks.junit.JUnitResultArchiver>
+  </publishers>
+  <buildWrappers/>
+</project>

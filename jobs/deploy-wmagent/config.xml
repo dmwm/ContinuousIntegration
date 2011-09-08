@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Run full deployment of a WMAgent instance</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>WMAGENT_VERSION</name>
+          <description>Override wmagent version in deploy script: format &quot;@0.8.1pre1&quot; etc.
+Blank for current deploy version.</description>
+          <defaultValue>@0.8.1.pre5-comp</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>svn+ssh://swakef@svn.cern.ch/reps/CMSDMWM/Infrastructure/trunk/Deployment</remote>
+        <local>cfg</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>*/5 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/sh
+
+if [ -e $PWD/current ]; then
+  echo &quot;Stopping services&quot;
+  $PWD/current/config/wmagent/manage stop-services
+fi
+
+rm -rf install current</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>#!/bin/sh
+
+rm -rf install
+$PWD/cfg/Deploy -r comp=comp -t install -s &apos;prep sw post&apos; $PWD wmagent${WMAGENT_VERSION}</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>#!/bin/sh
+
+# force mysql and couch to ramdisk
+RAMDISK=/mnt/ramdisk
+
+echo &quot;Linking mysql db to ramdisk&quot;
+rm -rf $RAMDISK/mysql
+mkdir -p $RAMDISK/mysql/database
+#ln -s $RAMDISK/mysql/database current/install/mysql/database 
+
+echo &quot;Linking couchdb db to ramdisk&quot;
+rm -rf $RAMDISK/couchdb
+mkdir -p $RAMDISK/couchdb/database
+#ln -s $RAMDISK/couchdb/database current/install/couchdb/database
+
+# force mysql to a reasonable size
+perl -p -i -e &apos;s/set-variable = innodb_buffer_pool_size=2G/set-variable = innodb_buffer_pool_size=100M/&apos; current/config/mysql/my.cnf
+perl -p -i -e &apos;s/set-variable = innodb_log_file_size=512M/set-variable = innodb_log_file_size=20M/&apos; current/config/mysql/my.cnf
+
+# divorce mysql and couchdb processes so they dont get killed
+# https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
+BUILD_ID=dontKillMe $PWD/current/config/wmagent/manage start-services</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder>
+      <factGenerator/>
+    </hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>WMCore-py2.6-mysql</childProjects>
+      <threshold>
+        <name>UNSTABLE</name>
+        <ordinal>1</ordinal>
+        <color>YELLOW</color>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
+  </publishers>
+  <buildWrappers/>
+</project>
