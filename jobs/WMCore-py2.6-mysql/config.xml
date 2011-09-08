@@ -7,7 +7,6 @@
     <com.coravy.hudson.plugins.github.GithubProjectProperty>
       <projectUrl>https://github.com/PerilousApricot/WMCore/</projectUrl>
     </com.coravy.hudson.plugins.github.GithubProjectProperty>
-    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="hudson.plugins.git.GitSCM">
     <configVersion>2</configVersion>
@@ -53,7 +52,7 @@
       <spec>*/5 * * * *</spec>
     </hudson.triggers.SCMTrigger>
   </triggers>
-  <concurrentBuild>true</concurrentBuild>
+  <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
       <command>set +x
