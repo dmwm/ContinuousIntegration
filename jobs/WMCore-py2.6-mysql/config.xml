@@ -5,8 +5,9 @@
   <keepDependencies>false</keepDependencies>
   <properties>
     <com.coravy.hudson.plugins.github.GithubProjectProperty>
-      <projectUrl>https://github.com/PerilousApricot/WMCore/</projectUrl>
+      <projectUrl>https://github.com/dmwm/WMCore/</projectUrl>
     </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="hudson.plugins.git.GitSCM">
     <configVersion>2</configVersion>
@@ -14,12 +15,12 @@
       <hudson.plugins.git.UserRemoteConfig>
         <name>origin</name>
         <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
-        <url>git://github.com/PerilousApricot/WMCore.git</url>
+        <url>git://github.com/dmwm/WMCore.git</url>
       </hudson.plugins.git.UserRemoteConfig>
     </userRemoteConfigs>
     <branches>
       <hudson.plugins.git.BranchSpec>
-        <name>**</name>
+        <name>svnmaster</name>
       </hudson.plugins.git.BranchSpec>
     </branches>
     <recursiveSubmodules>false</recursiveSubmodules>

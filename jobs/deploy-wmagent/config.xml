@@ -10,7 +10,7 @@
           <name>WMAGENT_VERSION</name>
           <description>Override wmagent version in deploy script: format &quot;@0.8.1pre1&quot; etc.
 Blank for current deploy version.</description>
-          <defaultValue>@0.8.1.pre5-comp</defaultValue>
+          <defaultValue>@0.8.4</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>

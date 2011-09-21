@@ -6,37 +6,70 @@
   <mode>NORMAL</mode>
   <useSecurity>true</useSecurity>
   <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
+    <permission>hudson.model.Computer.Configure:melo</permission>
+    <permission>hudson.model.Computer.Configure:meloam</permission>
     <permission>hudson.model.Computer.Configure:swakef</permission>
+    <permission>hudson.model.Computer.Create:melo</permission>
+    <permission>hudson.model.Computer.Create:meloam</permission>
     <permission>hudson.model.Computer.Create:swakef</permission>
+    <permission>hudson.model.Computer.Delete:melo</permission>
+    <permission>hudson.model.Computer.Delete:meloam</permission>
     <permission>hudson.model.Computer.Delete:swakef</permission>
     <permission>hudson.model.Hudson.Administer:maxa</permission>
+    <permission>hudson.model.Hudson.Administer:melo</permission>
     <permission>hudson.model.Hudson.Administer:meloam</permission>
     <permission>hudson.model.Hudson.Administer:metson</permission>
     <permission>hudson.model.Hudson.Administer:mnorman</permission>
     <permission>hudson.model.Hudson.Administer:sfoulkes</permission>
     <permission>hudson.model.Hudson.Administer:swakef</permission>
     <permission>hudson.model.Hudson.Read:anonymous</permission>
+    <permission>hudson.model.Hudson.Read:melo</permission>
+    <permission>hudson.model.Hudson.Read:meloam</permission>
     <permission>hudson.model.Hudson.Read:mnorman</permission>
     <permission>hudson.model.Hudson.Read:swakef</permission>
+    <permission>hudson.model.Item.Build:melo</permission>
+    <permission>hudson.model.Item.Build:meloam</permission>
     <permission>hudson.model.Item.Build:mnorman</permission>
     <permission>hudson.model.Item.Build:swakef</permission>
+    <permission>hudson.model.Item.Configure:melo</permission>
+    <permission>hudson.model.Item.Configure:meloam</permission>
     <permission>hudson.model.Item.Configure:mnorman</permission>
     <permission>hudson.model.Item.Configure:swakef</permission>
+    <permission>hudson.model.Item.Create:melo</permission>
+    <permission>hudson.model.Item.Create:meloam</permission>
     <permission>hudson.model.Item.Create:mnorman</permission>
     <permission>hudson.model.Item.Create:swakef</permission>
+    <permission>hudson.model.Item.Delete:melo</permission>
+    <permission>hudson.model.Item.Delete:meloam</permission>
     <permission>hudson.model.Item.Delete:swakef</permission>
+    <permission>hudson.model.Item.Read:melo</permission>
+    <permission>hudson.model.Item.Read:meloam</permission>
     <permission>hudson.model.Item.Read:mnorman</permission>
     <permission>hudson.model.Item.Read:swakef</permission>
+    <permission>hudson.model.Item.Workspace:melo</permission>
+    <permission>hudson.model.Item.Workspace:meloam</permission>
     <permission>hudson.model.Item.Workspace:mnorman</permission>
     <permission>hudson.model.Item.Workspace:swakef</permission>
+    <permission>hudson.model.Run.Delete:melo</permission>
+    <permission>hudson.model.Run.Delete:meloam</permission>
     <permission>hudson.model.Run.Delete:swakef</permission>
+    <permission>hudson.model.Run.Update:melo</permission>
+    <permission>hudson.model.Run.Update:meloam</permission>
     <permission>hudson.model.Run.Update:mnorman</permission>
     <permission>hudson.model.Run.Update:swakef</permission>
+    <permission>hudson.model.View.Configure:melo</permission>
+    <permission>hudson.model.View.Configure:meloam</permission>
     <permission>hudson.model.View.Configure:mnorman</permission>
     <permission>hudson.model.View.Configure:swakef</permission>
+    <permission>hudson.model.View.Create:melo</permission>
+    <permission>hudson.model.View.Create:meloam</permission>
     <permission>hudson.model.View.Create:mnorman</permission>
     <permission>hudson.model.View.Create:swakef</permission>
+    <permission>hudson.model.View.Delete:melo</permission>
+    <permission>hudson.model.View.Delete:meloam</permission>
     <permission>hudson.model.View.Delete:swakef</permission>
+    <permission>hudson.scm.SCM.Tag:melo</permission>
+    <permission>hudson.scm.SCM.Tag:meloam</permission>
     <permission>hudson.scm.SCM.Tag:swakef</permission>
   </authorizationStrategy>
   <securityRealm class="hudson.security.HudsonPrivateSecurityRealm">
@@ -75,6 +108,52 @@
       <filterQueue>false</filterQueue>
       <properties class="hudson.model.View$PropertyList"/>
     </hudson.model.AllView>
+    <au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
+      <owner class="hudson" reference="../../.."/>
+      <name>WMAgent test pipeline</name>
+      <description>WMAgent deploy, test pipeline</description>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <selectedJob>deploy-wmagent</selectedJob>
+      <noOfDisplayedBuilds>5</noOfDisplayedBuilds>
+      <buildViewTitle>WMAgent test pipeline</buildViewTitle>
+      <triggerOnlyLatestJob>false</triggerOnlyLatestJob>
+    </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
+    <listView>
+      <owner class="hudson" reference="../../.."/>
+      <name>Deployment</name>
+      <description>Deployment tests</description>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <jobNames class="tree-set">
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+      </jobNames>
+      <jobFilters/>
+      <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <hudson.views.BuildButtonColumn/>
+        <de.fspengler.hudson.pview.ConsoleViewColumn/>
+      </columns>
+      <includeRegex>.*deploy.*</includeRegex>
+    </listView>
+    <au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
+      <owner class="hudson" reference="../../.."/>
+      <name>Patch queue</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <selectedJob>WMCore-py2.6-mysql-roundabout</selectedJob>
+      <noOfDisplayedBuilds>10</noOfDisplayedBuilds>
+      <buildViewTitle>Patch Queue</buildViewTitle>
+      <triggerOnlyLatestJob>false</triggerOnlyLatestJob>
+    </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
   </views>
   <primaryView>All</primaryView>
   <slaveAgentPort>44475</slaveAgentPort>
