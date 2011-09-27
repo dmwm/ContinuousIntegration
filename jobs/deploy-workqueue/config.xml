@@ -10,11 +10,10 @@
           <name>WORKQUEUE_VERSION</name>
           <description>Override workqueue version in deploy script: format &quot;@0.8.1pre1&quot; etc.
 Blank for current deploy version.</description>
-          <defaultValue>@0.8.1.pre5</defaultValue>
+          <defaultValue>@0.8.5</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
-    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
@@ -45,10 +44,60 @@ Blank for current deploy version.</description>
     <hudson.tasks.Shell>
       <command>#!/bin/sh
 
-rm -rf install
-# note single user install
-$PWD/cfg/Deploy -p /data/auth/wmcore -t install -r comp=comp.pre -s &apos;prep sw post&apos; $PWD admin frontend backend workqueue${WMAGENT_VERSION}
+# stop couchdb
+if [ -e $PWD/current ]; then
+  echo &quot;Stopping services&quot;
+  $PWD/current/config/couchdb/manage stop &apos;I did read documentation&apos;
+
+  # stop frontend
+  (. $PWD/current/apps/frontend/etc/profile.d/init.sh &amp;&amp; httpd -f $PWD/state/frontend/server.conf -k stop)
+fi
+
+rm -rf install current
+# remove old cronjobs
+crontab -r
 </command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+rm -rf install
+
+# remove sudo from workqueue deploy
+#patch -N -d cfg -p2 &lt; /var/lib/jenkins/workqueue_sudo.patch
+
+# note single user install
+# need couchdb to get couchdb manage commands
+$PWD/cfg/Deploy -p /data/auth -t install -r comp=comp.pre -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WMAGENT_VERSION}
+
+# standard deploy assumes running as root - need to change few things
+HTTPD_CONF=$PWD/state/frontend/server.conf
+
+# run under current user
+perl -p -i -e &apos;s/^User/#User/&apos; ${HTTPD_CONF}
+perl -p -i -e &apos;s/^Group/#Group/&apos; ${HTTPD_CONF}
+
+# non-privileged port
+perl -p -i -e &apos;s/Listen 80/Listen 8080/&apos; ${HTTPD_CONF}
+perl -p -i -e &apos;s/\*:80/\*:8080/&apos; ${HTTPD_CONF}
+
+perl -p -i -e &apos;s/Listen 443/Listen 8443/&apos; ${HTTPD_CONF}
+perl -p -i -e &apos;s/\*:443/\*:8443/&apos; ${HTTPD_CONF}
+
+# skip sudo usage - just adds to /etc etc.
+perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
+
+# divorce processes so they dont get killed
+# https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
+
+# add users to sitedb
+sqlite3 /var/lib/jenkins/workspace/deploy-workqueue/current/auth/frontend/users.db &quot;insert into contact values(&apos;2&apos;,&apos;first&apos;,&apos;last&apos;,&apos;username&apos;,&apos;/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield&apos;)&quot;
+
+# start couchdb
+BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documentation&apos;
+
+#start frontend (manage assumes root so cant be used)
+(. current/apps/frontend/etc/profile.d/init.sh &amp;&amp; BUILD_ID=dontKillMe httpd -f $PWD/state/frontend/server.conf -k start)</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>

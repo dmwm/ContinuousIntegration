@@ -154,6 +154,18 @@
       <buildViewTitle>Patch Queue</buildViewTitle>
       <triggerOnlyLatestJob>false</triggerOnlyLatestJob>
     </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
+    <au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
+      <owner class="hudson" reference="../../.."/>
+      <name>ReqMgr and WorkQueue test pipeline</name>
+      <description>REqMgr and WorkQueue deployment and tests</description>
+      <filterExecutors>true</filterExecutors>
+      <filterQueue>true</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <selectedJob>deploy-workqueue</selectedJob>
+      <noOfDisplayedBuilds>5</noOfDisplayedBuilds>
+      <buildViewTitle>ReqMgr and WorkQueue test pipeline</buildViewTitle>
+      <triggerOnlyLatestJob>false</triggerOnlyLatestJob>
+    </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
   </views>
   <primaryView>All</primaryView>
   <slaveAgentPort>44475</slaveAgentPort>
