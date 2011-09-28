@@ -55,7 +55,7 @@ fi
 
 rm -rf install current
 # remove old cronjobs
-crontab -r
+crontab -r || true # dont die if no old crontab
 </command>
     </hudson.tasks.Shell>
     <hudson.tasks.Shell>
@@ -63,8 +63,13 @@ crontab -r
 
 rm -rf install
 
-# remove sudo from workqueue deploy
+# make workqueue deploy work in single user mode
 #patch -N -d cfg -p2 &lt; /var/lib/jenkins/workqueue_sudo.patch
+
+# link to hostcert
+mkdir -p certs
+[ -e certs/hostcert.pem ] || $(ln -s /etc/grid-security/hostcert.pem certs/hostcert.pem)
+[ -e certs/hostkey.pem ] || $(ln -s /etc/grid-security/hostkey.pem certs/hostkey.pem)
 
 # note single user install
 # need couchdb to get couchdb manage commands
@@ -89,9 +94,6 @@ perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
 
 # divorce processes so they dont get killed
 # https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
-
-# add users to sitedb
-sqlite3 /var/lib/jenkins/workspace/deploy-workqueue/current/auth/frontend/users.db &quot;insert into contact values(&apos;2&apos;,&apos;first&apos;,&apos;last&apos;,&apos;username&apos;,&apos;/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield&apos;)&quot;
 
 # start couchdb
 BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documentation&apos;
