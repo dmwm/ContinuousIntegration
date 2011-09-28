@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
   <disabledAdministrativeMonitors/>
-  <version>1.427</version>
+  <version>1.432</version>
   <numExecutors>1</numExecutors>
   <mode>NORMAL</mode>
   <useSecurity>true</useSecurity>
@@ -22,7 +22,6 @@
     <permission>hudson.model.Hudson.Administer:mnorman</permission>
     <permission>hudson.model.Hudson.Administer:sfoulkes</permission>
     <permission>hudson.model.Hudson.Administer:swakef</permission>
-    <permission>hudson.model.Hudson.Read:anonymous</permission>
     <permission>hudson.model.Hudson.Read:melo</permission>
     <permission>hudson.model.Hudson.Read:meloam</permission>
     <permission>hudson.model.Hudson.Read:mnorman</permission>
