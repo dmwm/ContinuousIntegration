@@ -113,7 +113,7 @@ python setup.py test --buildBotMode=true --reallyDeleteMyDatabaseAfterEveryTest=
     <hudson.tasks.Shell>
       <command># bring in testing utilities
 
-#. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
+. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
 
 export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
 
@@ -122,7 +122,7 @@ export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
 #export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
 
 set +e
-/data/software/bin/coverage xml -i</command>
+/data/software/bin/coverage xml -i || true</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
