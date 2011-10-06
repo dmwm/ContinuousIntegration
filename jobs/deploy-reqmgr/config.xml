@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Deploy a RequestManager instance.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.trac.TracProjectProperty>
+      <tracWebsite>https://svnweb.cern.ch/trac/CMSDMWM/</tracWebsite>
+    </hudson.plugins.trac.TracProjectProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>REQMGR_VERSION</name>
+          <description>Override reqmgr version in deploy script: format &quot;@0.8.1pre1&quot; etc.
+Blank for current deploy version.</description>
+          <defaultValue>@0.8.8</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>svn+ssh://swakef@svn.cern.ch/reps/CMSDMWM/Infrastructure/trunk/Deployment</remote>
+        <local>cfg</local>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+  </scm>
+  <assignedNode>reqmgr-slaves</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>*/5 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/sh
+
+# stop reqmgr
+if [ -e $PWD/current ]; then
+  echo &quot;Stopping existing ReqMgr services&quot;
+  $PWD/current/config/reqmgr/manage stop &apos;I did read documentation&apos;
+  $PWD/current/config/couchdb/manage stop &apos;I did read documentation&apos;
+
+  # stop frontend
+  (. $PWD/current/apps/frontend/etc/profile.d/init.sh &amp;&amp; httpd -f $PWD/state/frontend/server.conf -k stop)
+fi
+
+rm -rf install current
+# remove old cronjobs
+crontab -r || true # dont die if no old crontab
+</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+rm -rf install
+
+# skip sudo usage - just adds to /etc etc.
+perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
+
+# link to hostcert
+mkdir -p certs
+[ -e certs/hostcert.pem ] || $(ln -s /etc/grid-security/hostcert.pem certs/hostcert.pem)
+[ -e certs/hostkey.pem ] || $(ln -s /etc/grid-security/hostkey.pem certs/hostkey.pem)
+export X509_USER_CERT=$PWD/certs/hostcert.pem
+export X509_USER_KEY=$PWD/certs/hostkey.pem
+
+# note single user install
+# need couchdb to get couchdb manage commands
+$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A slc5_amd64_gcc434 -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION}
+
+# standard deploy assumes running as root - need to change a few things
+HTTPD_CONF=$PWD/state/frontend/server.conf
+
+# run under current user
+perl -p -i -e &apos;s/^User/#User/&apos; ${HTTPD_CONF}
+perl -p -i -e &apos;s/^Group/#Group/&apos; ${HTTPD_CONF}
+
+# non-privileged port
+perl -p -i -e &apos;s/Listen 80/Listen 8080/&apos; ${HTTPD_CONF}
+perl -p -i -e &apos;s/\*:80/\*:8080/&apos; ${HTTPD_CONF}
+
+perl -p -i -e &apos;s/Listen 443/Listen 8443/&apos; ${HTTPD_CONF}
+perl -p -i -e &apos;s/\*:443/\*:8443/&apos; ${HTTPD_CONF}
+
+# add test cert credentials
+cat extra-certificates.txt &gt;&gt; current/config/frontend/extra-certificates.txt
+./sitedb-mapping.sh sitedb-mapping.txt current/auth/frontend/users.db
+
+# FIXME: Remove when updated beyond 0.8.8
+perl -p -i -e &apos;s!domain=self.getDomainName\(\)!domain=&quot;&quot;!&apos; current/apps/reqmgr/lib/python2.6/site-packages/WMCore/Services/Requests.py
+
+# couchdb on 8443
+perl -p -i -e &apos;s!https://%s/couchdb!https://%s:8443/couchdb!&apos; current/config/reqmgr/ReqMgrConfig.py
+
+# divorce processes so they dont get killed
+# https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
+
+# start couchdb
+BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documentation&apos;
+
+# start reqmgr - needs to be started with full path (else import error)
+BUILD_ID=dontKillMe $PWD/current/config/reqmgr/manage start &apos;I did read documentation&apos;
+
+#start frontend (manage assumes root so cant be used)
+(. current/apps/frontend/etc/profile.d/init.sh &amp;&amp; BUILD_ID=dontKillMe httpd -f $PWD/state/frontend/server.conf -k start)</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder>
+      <factGenerator/>
+    </hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>deploy-workqueue</childProjects>
+      <threshold>
+        <name>UNSTABLE</name>
+        <ordinal>1</ordinal>
+        <color>YELLOW</color>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
+    <org.jenkinsci.plugins.emotional__jenkins.EmotionalJenkinsPublisher/>
+  </publishers>
+  <buildWrappers>
+    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+      <includes>extra-certificates.txt,sitedb-mapping.sh,sitedb-mapping.txt</includes>
+      <excludes></excludes>
+      <flatten>false</flatten>
+      <includeAntExcludes>false</includeAntExcludes>
+      <hudsonHomeRelative>false</hudsonHomeRelative>
+      <relativeTo>userContent</relativeTo>
+    </com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+  </buildWrappers>
+</project>

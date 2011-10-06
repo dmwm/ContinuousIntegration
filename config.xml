@@ -93,6 +93,17 @@
       <label>workqueue-slaves</label>
       <nodeProperties/>
     </slave>
+    <slave>
+      <name>reqmgr-slave</name>
+      <description>ReqMgr slave machine</description>
+      <remoteFS>/var/lib/jenkins</remoteFS>
+      <numExecutors>1</numExecutors>
+      <mode>NORMAL</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.slaves.JNLPLauncher"/>
+      <label>reqmgr-slaves</label>
+      <nodeProperties/>
+    </slave>
   </slaves>
   <quietPeriod>5</quietPeriod>
   <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
@@ -152,14 +163,14 @@
     </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
     <au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
       <owner class="hudson" reference="../../.."/>
-      <name>ReqMgr and WorkQueue test pipeline</name>
-      <description>REqMgr and WorkQueue deployment and tests</description>
+      <name>Full integration chain</name>
+      <description>Full integration chain</description>
       <filterExecutors>true</filterExecutors>
       <filterQueue>true</filterQueue>
       <properties class="hudson.model.View$PropertyList"/>
-      <selectedJob>deploy-workqueue</selectedJob>
+      <selectedJob>deploy-reqmgr</selectedJob>
       <noOfDisplayedBuilds>5</noOfDisplayedBuilds>
-      <buildViewTitle>ReqMgr and WorkQueue test pipeline</buildViewTitle>
+      <buildViewTitle>Full integration chain</buildViewTitle>
       <triggerOnlyLatestJob>false</triggerOnlyLatestJob>
     </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
   </views>
