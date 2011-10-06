@@ -173,6 +173,36 @@
       <buildViewTitle>Full integration chain</buildViewTitle>
       <triggerOnlyLatestJob>false</triggerOnlyLatestJob>
     </au.com.centrumsystems.hudson.plugin.buildpipeline.BuildPipelineView>
+    <maps.hudson.plugin.xfpanel.XFPanelView>
+      <owner class="hudson" reference="../../.."/>
+      <name>Summary view</name>
+      <description>Summary view</description>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <jobNames class="tree-set">
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+        <string>WMCore-py2.6-mysql</string>
+      </jobNames>
+      <jobFilters/>
+      <columns/>
+      <colors>
+        <okBG>#7E7EFF</okBG>
+        <okFG>#FFFFFF</okFG>
+        <failedBG>#FFC130</failedBG>
+        <failedFG>#FFFFFF</failedFG>
+        <brokenBG>#FF0000</brokenBG>
+        <brokenFG>#FFFFFF</brokenFG>
+        <otherBG>#CCCCCC</otherBG>
+        <otherFG>#FFFFFF</otherFG>
+      </colors>
+      <numColumns>1</numColumns>
+      <refresh>300</refresh>
+      <fullHD>true</fullHD>
+      <showDescription>false</showDescription>
+      <showZeroTestCounts>false</showZeroTestCounts>
+      <sortDescending>true</sortDescending>
+    </maps.hudson.plugin.xfpanel.XFPanelView>
   </views>
   <primaryView>All</primaryView>
   <slaveAgentPort>44475</slaveAgentPort>
