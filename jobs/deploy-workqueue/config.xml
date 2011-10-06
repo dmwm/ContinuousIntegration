@@ -66,6 +66,9 @@ rm -rf install
 # make workqueue deploy work in single user mode
 #patch -N -d cfg -p2 &lt; /var/lib/jenkins/workqueue_sudo.patch
 
+# skip sudo usage - just adds to /etc etc.
+perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
+
 # link to hostcert
 mkdir -p certs
 [ -e certs/hostcert.pem ] || $(ln -s /etc/grid-security/hostcert.pem certs/hostcert.pem)
@@ -73,7 +76,7 @@ mkdir -p certs
 
 # note single user install
 # need couchdb to get couchdb manage commands
-$PWD/cfg/Deploy -p /data/auth -t install -r comp=comp.pre -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WMAGENT_VERSION}
+$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A slc5_amd64_gcc434 -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WMAGENT_VERSION}
 
 # standard deploy assumes running as root - need to change few things
 HTTPD_CONF=$PWD/state/frontend/server.conf
@@ -89,8 +92,16 @@ perl -p -i -e &apos;s/\*:80/\*:8080/&apos; ${HTTPD_CONF}
 perl -p -i -e &apos;s/Listen 443/Listen 8443/&apos; ${HTTPD_CONF}
 perl -p -i -e &apos;s/\*:443/\*:8443/&apos; ${HTTPD_CONF}
 
-# skip sudo usage - just adds to /etc etc.
-perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
+# add test agent cert credentials
+cat extra-certificates.txt &gt;&gt; current/config/frontend/extra-certificates.txt
+./sitedb-mapping.sh sitedb-mapping.txt current/auth/frontend/users.db
+
+# FIXME: Remove when updated beyond 0.8.8
+perl -p -i -e &apos;s!domain=self.getDomainName\(\)!domain=&quot;&quot;!&apos; current/apps/workqueue/lib/python2.6/site-packages/WMCore/Services/Requests.py
+
+# couchdb on 8443
+perl -p -i -e &apos;s!https://%s/couchdb!https://%s:8443/couchdb!&apos; current/config/workqueue/GlobalWorkQueueConfig.py
+perl -p -i -e &apos;s!https://%s/reqmgr/reqMgr&quot; % HOST!https://dev-cms-reqmgr.cern.ch:8443/reqmgr/reqMgr&quot;!&apos; current/config/workqueue/GlobalWorkQueueConfig.py
 
 # divorce processes so they dont get killed
 # https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
@@ -106,6 +117,23 @@ BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documen
     <hudson.plugins.chucknorris.CordellWalkerRecorder>
       <factGenerator/>
     </hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.tasks.BuildTrigger>
+      <childProjects>deploy-wmagent</childProjects>
+      <threshold>
+        <name>UNSTABLE</name>
+        <ordinal>1</ordinal>
+        <color>YELLOW</color>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
   </publishers>
-  <buildWrappers/>
+  <buildWrappers>
+    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+      <includes>extra-certificates.txt,sitedb-mapping.sh,sitedb-mapping.txt</includes>
+      <excludes></excludes>
+      <flatten>false</flatten>
+      <includeAntExcludes>false</includeAntExcludes>
+      <hudsonHomeRelative>false</hudsonHomeRelative>
+      <relativeTo>userContent</relativeTo>
+    </com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+  </buildWrappers>
 </project>
