@@ -28,7 +28,7 @@ start()
 	[ -f slave.jar ] || download_jar
 
         echo -n $"Starting Jenkins BuildSlave: "
-        sudo -u $JENKINS_USER sh -c "\
+        sudo -H -u $JENKINS_USER sh -c "\
 	  java -jar slave.jar \
              -jnlpUrl $JENKINS_URL/computer/$JENKINS_NODENAME/slave-agent.jnlp \
              >slave.log 2>&1 &"
@@ -39,7 +39,8 @@ start()
 stop()
 {
         echo -n $"Shutting down Jenkins BuildSlave: "
-	killproc slave.jar
+	#killproc slave.jar
+	pkill -f slave.jar
 
         echo Done.
 }
