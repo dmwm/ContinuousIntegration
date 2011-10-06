@@ -4,10 +4,12 @@
   <description></description>
   <keepDependencies>false</keepDependencies>
   <properties>
+    <hudson.plugins.trac.TracProjectProperty>
+      <tracWebsite>https://svnweb.cern.ch/trac/CMSDMWM/</tracWebsite>
+    </hudson.plugins.trac.TracProjectProperty>
     <com.coravy.hudson.plugins.github.GithubProjectProperty>
       <projectUrl>https://github.com/dmwm/WMCore/</projectUrl>
     </com.coravy.hudson.plugins.github.GithubProjectProperty>
-    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="hudson.plugins.git.GitSCM">
     <configVersion>2</configVersion>
@@ -41,9 +43,10 @@
     <skipTag>false</skipTag>
     <scmName></scmName>
   </scm>
-  <canRoam>true</canRoam>
+  <assignedNode>agent-slaves</assignedNode>
+  <canRoam>false</canRoam>
   <disabled>false</disabled>
-  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
     <com.cloudbees.jenkins.GitHubPushTrigger>
@@ -59,6 +62,7 @@
       <command>set +x
 . /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
 set -x
+rm -rf install
 python setup.py install --prefix=install</command>
     </hudson.tasks.Shell>
     <hudson.tasks.Shell>
@@ -80,22 +84,20 @@ export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
 
 #export DBS_CLIENT_CONFIG=/Users/stuartw/projects/Workspace/WMCore/../DBSAPI/dbs.config
 
-set +x 
+set +x # don&apos;t echo secrets
 . /var/lib/jenkins/WMAgent.secrets
 
 export DATABASE=mysql://${MYSQL_USER}:${MYSQL_PASS}@localhost/WMCore_unit_test
 export DBSOCK=/var/lib/jenkins/jobs/deploy-wmagent/workspace/install/install/mysql/logs/mysql.sock
 
 export COUCHURL=&quot;http://${COUCH_USER}:${COUCH_PASS}@${COUCH_HOST}:${COUCH_PORT}&quot;
+
+# ensure db exists
+echo &quot;CREATE DATABASE IF NOT EXISTS WMCore_unit_test&quot; | mysql -u ${MYSQL_USER} --password=${MYSQL_PASS} --socket=${DBSOCK}
 set -x
 
 # working dir includes entire python source - ignore
 perl -p -i -e &apos;s/--cover-inclusive//&apos; setup_test.py
-
-# ensure db exists
-set +x 
-echo &quot;CREATE DATABASE IF NOT EXISTS WMCore_unit_test&quot; | mysql -u ${MYSQL_USER} --password=${MYSQL_PASS} --socket=${DBSOCK}
-set -x
 
 #export NOSE_EXCLUDE=&apos;AlertGenerator&apos;
 
@@ -105,24 +107,46 @@ set -x
 #export NOSE_PROCESS_RESTARTWORKER=1
 
 # cover branches but not external python modules
-#perl -p -i -e &apos;s/--cover-inclusive/--cover-branches/&apos; setup_test.py
+#FIXME: Is this working? No.
+perl -p -i -e &apos;s/--cover-inclusive/--cover-branches/&apos; setup_test.py
+perl -p -i -e &quot;s/&apos;--cover-html&apos;,//&quot; setup_test.py
+
+# include FWCore.ParameterSet.Config
+
+export PYTHONPATH=/var/lib/jenkins/additional-library:$PYTHONPATH
+
+# remove old coverage data
+/data/software/bin/coverage erase
 
 # run test - force success though - failure stops coverage report
-python setup.py test --buildBotMode=true --reallyDeleteMyDatabaseAfterEveryTest=true || true #--testCertainPath=test/python/WMCore_t/WMBS_t || true</command>
+python setup.py test --buildBotMode=true --reallyDeleteMyDatabaseAfterEveryTest=true || true #--testCertainPath=test/python/WMCore_t/WMBS_t || true
+
+# Add these here as they need the same environment as the main run
+#FIXME: change so initial coverage command skips external code
+#/data/software/bin/coverage xml -i --include=$PWD/install* || true
+
+#export PYLINTHOME=$PWD/.pylint.d # force pylint cache to this workspace
+#ulimit -n 4086 # opens all source files at once (&gt; 1024)
+#/data/software/bin/pylint --rcfile=standards/.pylintrc -f parseable install/lib/python2.6/site-packages/* 2&gt;&amp;1 &gt; pylint.txt || true</command>
     </hudson.tasks.Shell>
     <hudson.tasks.Shell>
       <command># bring in testing utilities
 
-. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
+#. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
 
-export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
+#export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
 
 #export WMCORE_ROOT=$PWD/install
 #export PYTHONPATH=$WMCORE_ROOT/lib/python2.6/site-packages:$PYTHONPATH
 #export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
 
-set +e
-/data/software/bin/coverage xml -i || true</command>
+#set +e
+#/data/software/bin/coverage xml -i || true
+
+#/data/software/bin/pylint --rcfile=standards/.pylintrc -f parseable src/python/WMCore/* 2&gt;&amp;1 &gt; pylint.txt || true</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command></command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
@@ -134,6 +158,10 @@ set +e
       <onlyStable>false</onlyStable>
       <healthyTarget>
         <targets class="enum-map" enum-type="hudson.plugins.cobertura.targets.CoverageMetric">
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>CONDITIONAL</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>50</int>
+          </entry>
           <entry>
             <hudson.plugins.cobertura.targets.CoverageMetric>LINE</hudson.plugins.cobertura.targets.CoverageMetric>
             <int>50</int>
@@ -147,6 +175,10 @@ set +e
       <unhealthyTarget>
         <targets class="enum-map" enum-type="hudson.plugins.cobertura.targets.CoverageMetric">
           <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>CONDITIONAL</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>0</int>
+          </entry>
+          <entry>
             <hudson.plugins.cobertura.targets.CoverageMetric>LINE</hudson.plugins.cobertura.targets.CoverageMetric>
             <int>0</int>
           </entry>
@@ -158,6 +190,10 @@ set +e
       </unhealthyTarget>
       <failingTarget>
         <targets class="enum-map" enum-type="hudson.plugins.cobertura.targets.CoverageMetric">
+          <entry>
+            <hudson.plugins.cobertura.targets.CoverageMetric>CONDITIONAL</hudson.plugins.cobertura.targets.CoverageMetric>
+            <int>0</int>
+          </entry>
           <entry>
             <hudson.plugins.cobertura.targets.CoverageMetric>LINE</hudson.plugins.cobertura.targets.CoverageMetric>
             <int>0</int>
@@ -175,6 +211,186 @@ set +e
       <keepLongStdio>false</keepLongStdio>
       <testDataPublishers/>
     </hudson.tasks.junit.JUnitResultArchiver>
+    <hudson.plugins.violations.ViolationsPublisher>
+      <config>
+        <suppressions class="tree-set">
+          <no-comparator/>
+        </suppressions>
+        <typeConfigs>
+          <no-comparator/>
+          <entry>
+            <string>checkstyle</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>checkstyle</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>codenarc</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>codenarc</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>cpd</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>cpd</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>cpplint</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>cpplint</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>csslint</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>csslint</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>findbugs</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>findbugs</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>fxcop</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>fxcop</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>gendarme</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>gendarme</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>jcreport</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>jcreport</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>jslint</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>jslint</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>pep8</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>pep8</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>pmd</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>pmd</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>pylint</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>pylint</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern>pylint.txt</pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>simian</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>simian</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+          <entry>
+            <string>stylecop</string>
+            <hudson.plugins.violations.TypeConfig>
+              <type>stylecop</type>
+              <min>10</min>
+              <max>999</max>
+              <unstable>999</unstable>
+              <usePattern>false</usePattern>
+              <pattern></pattern>
+            </hudson.plugins.violations.TypeConfig>
+          </entry>
+        </typeConfigs>
+        <limit>100</limit>
+        <sourcePathPattern>**/install/lib/python2.6/site-packages</sourcePathPattern>
+        <fauxProjectPath></fauxProjectPath>
+        <encoding>default</encoding>
+      </config>
+    </hudson.plugins.violations.ViolationsPublisher>
+    <org.jenkinsci.plugins.emotional__jenkins.EmotionalJenkinsPublisher/>
   </publishers>
   <buildWrappers/>
 </project>
