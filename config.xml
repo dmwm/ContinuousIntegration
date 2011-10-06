@@ -165,7 +165,7 @@
   </views>
   <primaryView>All</primaryView>
   <slaveAgentPort>44475</slaveAgentPort>
-  <label></label>
+  <label>agent-slaves</label>
   <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
     <excludeClientIPFromCrumb>false</excludeClientIPFromCrumb>
     <PROXY__HEADER>X-Forwarded-For</PROXY__HEADER>
