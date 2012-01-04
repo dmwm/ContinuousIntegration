@@ -115,6 +115,17 @@
       <label>wmcore-unit-test-slaves</label>
       <nodeProperties/>
     </slave>
+    <slave>
+      <name>dmwm-agent-int</name>
+      <description>WMAgent integration instance</description>
+      <remoteFS>/var/lib/jenkins</remoteFS>
+      <numExecutors>1</numExecutors>
+      <mode>NORMAL</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.slaves.JNLPLauncher"/>
+      <label>agent-slaves</label>
+      <nodeProperties/>
+    </slave>
   </slaves>
   <quietPeriod>5</quietPeriod>
   <scmCheckoutRetryCount>0</scmCheckoutRetryCount>

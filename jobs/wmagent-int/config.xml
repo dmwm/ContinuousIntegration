@@ -1,0 +1,215 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Integration wmagent instance</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.trac.TracProjectProperty>
+      <tracWebsite>https://svnweb.cern.ch/trac/CMSDMWM/</tracWebsite>
+    </hudson.plugins.trac.TracProjectProperty>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty>
+      <projectUrl>https://github.com/dmwm/WMCore/</projectUrl>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.TextParameterDefinition>
+          <name>WMAGENT_VERSION</name>
+          <description>Override wmagent version: format &quot;0.8.1pre1&quot; etc.
+Blank for current deploy version. Only affects rpm install not code checkout.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>SCRAM_ARCH</name>
+          <description></description>
+          <defaultValue>slc5_amd64_gcc461</defaultValue>
+        </hudson.model.TextParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
+  </properties>
+  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM">
+    <scms>
+      <hudson.plugins.git.GitSCM>
+        <configVersion>2</configVersion>
+        <userRemoteConfigs>
+          <hudson.plugins.git.UserRemoteConfig>
+            <name>origin</name>
+            <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
+            <url>git://github.com/dmwm/WMCore.git</url>
+          </hudson.plugins.git.UserRemoteConfig>
+        </userRemoteConfigs>
+        <branches>
+          <hudson.plugins.git.BranchSpec>
+            <name>svnmaster</name>
+          </hudson.plugins.git.BranchSpec>
+        </branches>
+        <recursiveSubmodules>false</recursiveSubmodules>
+        <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+        <authorOrCommitter>false</authorOrCommitter>
+        <clean>false</clean>
+        <wipeOutWorkspace>false</wipeOutWorkspace>
+        <pruneBranches>false</pruneBranches>
+        <remotePoll>false</remotePoll>
+        <buildChooser class="hudson.plugins.git.util.DefaultBuildChooser"/>
+        <gitTool>Default</gitTool>
+        <submoduleCfg class="list"/>
+        <relativeTargetDir>code</relativeTargetDir>
+        <excludedRegions></excludedRegions>
+        <excludedUsers></excludedUsers>
+        <gitConfigName></gitConfigName>
+        <gitConfigEmail></gitConfigEmail>
+        <skipTag>false</skipTag>
+        <scmName></scmName>
+      </hudson.plugins.git.GitSCM>
+      <hudson.scm.SubversionSCM>
+        <locations>
+          <hudson.scm.SubversionSCM_-ModuleLocation>
+            <remote>svn+ssh://swakef@svn.cern.ch/reps/CMSDMWM/Infrastructure/trunk/Deployment</remote>
+            <local>cfg</local>
+          </hudson.scm.SubversionSCM_-ModuleLocation>
+        </locations>
+        <excludedRegions>.*</excludedRegions>
+        <includedRegions></includedRegions>
+        <excludedUsers></excludedUsers>
+        <excludedRevprop></excludedRevprop>
+        <excludedCommitMessages></excludedCommitMessages>
+        <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+      </hudson.scm.SubversionSCM>
+    </scms>
+  </scm>
+  <assignedNode>dmwm-agent-int</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <com.cloudbees.jenkins.GitHubPushTrigger>
+      <spec></spec>
+    </com.cloudbees.jenkins.GitHubPushTrigger>
+    <hudson.triggers.SCMTrigger>
+      <spec>*/5 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+    <org.jenkinsci.plugins.urltrigger.URLTrigger>
+      <spec>*/5 * * * *</spec>
+      <entries>
+        <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+          <url>http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.slc5_amd64_gcc461.comp</url>
+          <checkStatus>false</checkStatus>
+          <statusCode>200</statusCode>
+          <checkLastModificationDate>true</checkLastModificationDate>
+          <inspectingContent>false</inspectingContent>
+          <contentTypes/>
+        </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+      </entries>
+    </org.jenkinsci.plugins.urltrigger.URLTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command># run latest wmagent deploy
+set -x
+
+current=&quot;none&quot;
+[ `ls -d deploy/current/sw*/slc5_amd64_gcc461/cms/wmagent/*` ] &amp;&amp; current=$(basename $(ls -d deploy/current/sw*/slc5_amd64_gcc461/cms/wmagent/*))
+
+# TODO: if a previous build leaves a corrupt install this will fail - how solve that - redeploy each time?
+
+# if not provided get latest version
+#WMAGENT_VERSION=&quot;0.8.14&quot;
+#WMAGENT_VERSION=$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.$SCRAM_ARCH.comp | awk &apos;{print $4}&apos; | cut -d+ -f3)
+
+if [ X$WMAGENT_VERSION == X ]; then
+  WMAGENT_VERSION=$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.$SCRAM_ARCH.comp | awk &apos;{print $4}&apos; | cut -d+ -f3)
+fi
+
+#WMAGENT_VERSION=${WMAGENT_VERSION+&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.$SCRAM_ARCH.comp | awk &apos;{print $4}&apos; | cut -d+ -f3)&quot;}
+
+if [ X$current != X$WMAGENT_VERSION ]; then
+  echo &quot;Deploying wmagent@$WMAGENT_VERSION&quot;
+  if [ -e $PWD/deploy/current ]; then
+    echo &quot;Stopping agent&quot;
+    $PWD/deploy/current/config/wmagent/manage stop-agent
+    echo &quot;Stopping services&quot;
+    $PWD/deploy/current/config/wmagent/manage stop-services
+    # remove old crons
+    crontab -r || true
+    rm -rf deploy
+  fi
+
+  # patch deploy
+  #patch -N -d cfg -p2 &lt; $HOME/wmagent_deploy_dash_name.patch
+
+  # deploy
+  $PWD/cfg/Deploy -r comp=comp -t $WMAGENT_VERSION -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD/deploy wmagent@${WMAGENT_VERSION}
+
+  # force mysql to a reasonable size
+  perl -p -i -e &apos;s/set-variable = innodb_buffer_pool_size=2G/set-variable = innodb_buffer_pool_size=50M/&apos; deploy/current/config/mysql/my.cnf
+  perl -p -i -e &apos;s/set-variable = innodb_log_file_size=512M/set-variable = innodb_log_file_size=20M/&apos; deploy/current/config/mysql/my.cnf
+  perl -p -i -e &apos;s/key_buffer=4000M/key_buffer=100M/&apos; deploy/current/config/mysql/my.cnf
+  perl -p -i -e &apos;s/max_heap_table_size=2048M/max_heap_table_size=100M/&apos; deploy/current/config/mysql/my.cnf
+  perl -p -i -e &apos;s/tmp_table_size=2048M/tmp_table_size=100M/&apos; deploy/current/config/mysql/my.cnf
+
+  $PWD/deploy/current/config/wmagent/manage activate-agent
+fi
+
+# stop the recursive link screwing things up (needs to be after bootstrap)
+# jenkins hangs recursively scanning dir if left in
+unlink deploy/current/sw*/var || /bin/true</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command># edit config - change default team
+perl -p -i -e &apos;s/agentTeams =.*/agentTeams = &quot;TestTeam&quot;/&apos; deploy/current/config/wmagent/config-template.py
+
+#reduce taskarchiver timeout
+perl -p -i -e &apos;s/workflowArchiveTimeout =.*/workflowArchiveTimeout = 60/&apos; deploy/current/config/wmagent/config-template.py
+
+# reduce retries
+perl -p -i -e &apos;s/maxJobRetries =.*/maxJobRetries = 1/&apos; deploy/current/config/wmagent/config-template.py
+
+# Big hack - someone in the unit test wipes wmagent_ couchdb db&apos;s - rename to something else
+#perl -p -i -e &apos;s/wmagent_/testagent_/&apos; deploy/current/config/wmagent/config-template.py
+
+# change to test workqueue
+perl -p -i -e &apos;s!https://cmsweb.cern.ch/couchdb/workqueue!https://dev-cms-wq.cern.ch:8443/couchdb/workqueue!&apos; deploy/current/config/wmagent/config-template.py
+# Use the mock submitter plugin - https://svnweb.cern.ch/trac/CMSDMWM/wiki/HOWTOMockGrid
+perl -p -i -e &apos;s/CondorPlugin/MockPlugin/&apos; deploy/current/config/wmagent/config-template.py
+echo &quot;
+config.BossAir.section_(&apos;MockPlugin&apos;)
+config.BossAir.MockPlugin.jobRunTime = 2
+config.BossAir.MockPlugin.mockPluginProcesses = 4
+config.BossAir.MockPlugin.fakeReport = &apos;../../../../../code/test/python/WMCore_t/BossAir_t/FakeReport.pkl&apos;
+config.BossAir.MockPlugin.lcFakeReport = &apos;../../../../../code/test/python/WMCore_t/BossAir_t/LogCollectFakeReport.pkl&apos;
+&quot; &gt;&gt; deploy/current/config/wmagent/config-template.py</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command># start / ensure services are running
+
+export X509_USER_CERT=/etc/grid-security/hostcert.pem
+export X509_USER_KEY=/etc/grid-security/hostkey.pem
+
+echo &quot;starting services&quot;
+# divorce mysql and couchdb processes so they dont get killed
+# https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
+$PWD/deploy/current/config/wmagent/manage stop-services
+BUILD_ID=dontKillMe $PWD/deploy/current/config/wmagent/manage start-services
+
+echo &quot;Init agent&quot;
+# force couchdb init
+rm -f deploy/current/install/wmagent/.init
+$PWD/deploy/current/config/wmagent/manage init-agent
+rm -f deploy/current/install/wmagent/.init
+$PWD/deploy/current/config/wmagent/manage init-agent || /bin/true # retry to ensure all inited
+
+# add sites
+deploy/current/config/wmagent/manage execute-agent wmagent-resource-control --add-all-sites --plugin=MockPlugin  || /bin/true # site may already exist
+# CERN not added by above?
+deploy/current/config/wmagent/manage execute-agent wmagent-resource-control --site-name=T1_CH_CERN --site-slots=10 --se-name=srm-cms.cern.ch --ce-name=ce.cern.ch --plugin=MockPlugin --cms-name=T1_CH_CERN || /bin/true # site may already exist
+
+echo &quot;start agent&quot;
+$PWD/deploy/current/config/wmagent/manage stop-agent
+BUILD_ID=dontKillMe $PWD/deploy/current/config/wmagent/manage start-agent</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>
