@@ -11,12 +11,18 @@
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
           <name>REQMGR_VERSION</name>
-          <description>Override reqmgr version in deploy script: format &quot;@0.8.1pre1&quot; etc.
+          <description>Override reqmgr version: format &quot;@0.8.1pre1&quot; etc.
 Blank for current deploy version.</description>
-          <defaultValue>@0.8.8</defaultValue>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>SCRAM_ARCH</name>
+          <description></description>
+          <defaultValue>slc5_amd64_gcc461</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
@@ -30,7 +36,7 @@ Blank for current deploy version.</description>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
     <excludedCommitMessages></excludedCommitMessages>
-    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateWithCleanUpdater"/>
   </scm>
   <assignedNode>reqmgr-slaves</assignedNode>
   <canRoam>false</canRoam>
@@ -41,6 +47,19 @@ Blank for current deploy version.</description>
     <hudson.triggers.SCMTrigger>
       <spec>*/5 * * * *</spec>
     </hudson.triggers.SCMTrigger>
+    <org.jenkinsci.plugins.urltrigger.URLTrigger>
+      <spec>*/5 * * * *</spec>
+      <entries>
+        <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+          <url>http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/reqmgr.slc5_amd64_gcc461.comp.pre</url>
+          <checkStatus>false</checkStatus>
+          <statusCode>200</statusCode>
+          <checkLastModificationDate>true</checkLastModificationDate>
+          <inspectingContent>false</inspectingContent>
+          <contentTypes/>
+        </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+      </entries>
+    </org.jenkinsci.plugins.urltrigger.URLTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
   <builders>
@@ -68,7 +87,7 @@ crontab -r || true # dont die if no old crontab
 rm -rf install
 
 # skip sudo usage - just adds to /etc etc.
-perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
+perl -p -i -e &apos;s/.*sudo.*/:/&apos; $PWD/cfg/frontend/deploy
 
 # link to hostcert
 mkdir -p certs
@@ -77,9 +96,14 @@ mkdir -p certs
 export X509_USER_CERT=$PWD/certs/hostcert.pem
 export X509_USER_KEY=$PWD/certs/hostkey.pem
 
+#REQMGR_VERSION=${REQMGR_VERSION+&apos;@&apos;&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/reqmgr.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)&quot;}
+if [ X$REQMGR_VERSION == X ]; then
+  REQMGR_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/reqmgr.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
+fi
+
 # note single user install
 # need couchdb to get couchdb manage commands
-$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A slc5_amd64_gcc434 -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION}
+$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION}
 
 # standard deploy assumes running as root - need to change a few things
 HTTPD_CONF=$PWD/state/frontend/server.conf
@@ -100,10 +124,13 @@ cat extra-certificates.txt &gt;&gt; current/config/frontend/extra-certificates.t
 ./sitedb-mapping.sh sitedb-mapping.txt current/auth/frontend/users.db
 
 # FIXME: Remove when updated beyond 0.8.8
-perl -p -i -e &apos;s!domain=self.getDomainName\(\)!domain=&quot;&quot;!&apos; current/apps/reqmgr/lib/python2.6/site-packages/WMCore/Services/Requests.py
+#perl -p -i -e &apos;s!domain=self.getDomainName\(\)!domain=&quot;&quot;!&apos; current/apps/reqmgr/lib/python2.6/site-packages/WMCore/Services/Requests.py
 
 # couchdb on 8443
 perl -p -i -e &apos;s!https://%s/couchdb!https://%s:8443/couchdb!&apos; current/config/reqmgr/ReqMgrConfig.py
+
+# get useful error messages
+perl -p -i -e &apos;s!config.Webtools.environment.*!config.Webtools.environment=&quot;development&quot;!&apos; current/config/reqmgr/ReqMgrConfig.py
 
 # divorce processes so they dont get killed
 # https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
