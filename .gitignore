@@ -1,7 +1,8 @@
 jobs/*/*
 !jobs/*/config.xml
 *.log
-*.log.1
+*.log.*
+log/
 *.json
 .owner
 *.bak
