@@ -8,12 +8,18 @@
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
           <name>WORKQUEUE_VERSION</name>
-          <description>Override workqueue version in deploy script: format &quot;@0.8.1pre1&quot; etc.
-Blank for current deploy version.</description>
-          <defaultValue>@0.8.5</defaultValue>
+          <description>Override workqueue version: format &quot;@0.8.1pre1&quot; etc.
+Blank for latest version.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>SCRAM_ARCH</name>
+          <description></description>
+          <defaultValue>slc5_amd64_gcc461</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="hudson.scm.SubversionSCM">
     <locations>
@@ -27,7 +33,7 @@ Blank for current deploy version.</description>
     <excludedUsers></excludedUsers>
     <excludedRevprop></excludedRevprop>
     <excludedCommitMessages></excludedCommitMessages>
-    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateWithCleanUpdater"/>
   </scm>
   <assignedNode>workqueue-slaves</assignedNode>
   <canRoam>false</canRoam>
@@ -38,6 +44,19 @@ Blank for current deploy version.</description>
     <hudson.triggers.SCMTrigger>
       <spec>*/5 * * * *</spec>
     </hudson.triggers.SCMTrigger>
+    <org.jenkinsci.plugins.urltrigger.URLTrigger>
+      <spec>*/5 * * * *</spec>
+      <entries>
+        <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+          <url>http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/workqueue.slc5_amd64_gcc461.comp.pre</url>
+          <checkStatus>false</checkStatus>
+          <statusCode>200</statusCode>
+          <checkLastModificationDate>true</checkLastModificationDate>
+          <inspectingContent>false</inspectingContent>
+          <contentTypes/>
+        </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+      </entries>
+    </org.jenkinsci.plugins.urltrigger.URLTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
   <builders>
@@ -59,24 +78,30 @@ crontab -r || true # dont die if no old crontab
 </command>
     </hudson.tasks.Shell>
     <hudson.tasks.Shell>
-      <command>set +x
+      <command>set -x
 
 rm -rf install
 
 # make workqueue deploy work in single user mode
-#patch -N -d cfg -p2 &lt; /var/lib/jenkins/workqueue_sudo.patch
+#patch -N -d cfg -p2 &lt; /var/lib/jenkins/0001-workqueue-0.8.15.patch
 
 # skip sudo usage - just adds to /etc etc.
-perl -p -i -e &apos;s/.*sudo.*//&apos; $PWD/cfg/frontend/deploy
+perl -p -i -e &apos;s/.*sudo.*/:/&apos; $PWD/cfg/frontend/deploy
 
 # link to hostcert
 mkdir -p certs
 [ -e certs/hostcert.pem ] || $(ln -s /etc/grid-security/hostcert.pem certs/hostcert.pem)
 [ -e certs/hostkey.pem ] || $(ln -s /etc/grid-security/hostkey.pem certs/hostkey.pem)
 
+# if not provided get latest version
+#WORKQUEUE_VERSION=${WORKQUEUE_VERSION+&apos;@&apos;&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/workqueue.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)&quot;}
+if [ X$WORKQUEUE_VERSION == X ]; then
+  WORKQUEUE_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/workqueue.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
+fi
+
 # note single user install
 # need couchdb to get couchdb manage commands
-$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A slc5_amd64_gcc434 -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WMAGENT_VERSION}
+$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WORKQUEUE_VERSION}
 
 # standard deploy assumes running as root - need to change few things
 HTTPD_CONF=$PWD/state/frontend/server.conf
@@ -118,7 +143,7 @@ BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documen
       <factGenerator/>
     </hudson.plugins.chucknorris.CordellWalkerRecorder>
     <hudson.tasks.BuildTrigger>
-      <childProjects>deploy-wmagent</childProjects>
+      <childProjects>deploy-wmagent, wmagent-int</childProjects>
       <threshold>
         <name>UNSTABLE</name>
         <ordinal>1</ordinal>
