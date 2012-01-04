@@ -104,6 +104,17 @@
       <label>reqmgr-slaves</label>
       <nodeProperties/>
     </slave>
+    <slave>
+      <name>dmwm-wmcore</name>
+      <description>For running wmcore unit tests</description>
+      <remoteFS>/var/lib/jenkins</remoteFS>
+      <numExecutors>1</numExecutors>
+      <mode>NORMAL</mode>
+      <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+      <launcher class="hudson.slaves.JNLPLauncher"/>
+      <label>wmcore-unit-test-slaves</label>
+      <nodeProperties/>
+    </slave>
   </slaves>
   <quietPeriod>5</quietPeriod>
   <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
