@@ -1,0 +1,243 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Oracle specific tests</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.trac.TracProjectProperty>
+      <tracWebsite>https://svnweb.cern.ch/trac/CMSDMWM/</tracWebsite>
+    </hudson.plugins.trac.TracProjectProperty>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty>
+      <projectUrl>https://github.com/dmwm/WMCore/</projectUrl>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.TextParameterDefinition>
+          <name>WMAGENT_VERSION</name>
+          <description>Override wmagent version: format &quot;0.8.1pre1&quot; etc.
+Blank for current deploy version. Only affects rpm install not code checkout.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>SCRAM_ARCH</name>
+          <description></description>
+          <defaultValue>slc5_amd64_gcc461</defaultValue>
+        </hudson.model.TextParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty/>
+  </properties>
+  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM">
+    <scms>
+      <hudson.plugins.git.GitSCM>
+        <configVersion>2</configVersion>
+        <userRemoteConfigs>
+          <hudson.plugins.git.UserRemoteConfig>
+            <name>origin</name>
+            <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
+            <url>git://github.com/dmwm/WMCore.git</url>
+          </hudson.plugins.git.UserRemoteConfig>
+        </userRemoteConfigs>
+        <branches>
+          <hudson.plugins.git.BranchSpec>
+            <name>svnmaster</name>
+          </hudson.plugins.git.BranchSpec>
+        </branches>
+        <recursiveSubmodules>false</recursiveSubmodules>
+        <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+        <authorOrCommitter>false</authorOrCommitter>
+        <clean>false</clean>
+        <wipeOutWorkspace>false</wipeOutWorkspace>
+        <pruneBranches>false</pruneBranches>
+        <remotePoll>false</remotePoll>
+        <buildChooser class="hudson.plugins.git.util.DefaultBuildChooser"/>
+        <gitTool>Default</gitTool>
+        <submoduleCfg class="list"/>
+        <relativeTargetDir>code</relativeTargetDir>
+        <excludedRegions></excludedRegions>
+        <excludedUsers></excludedUsers>
+        <gitConfigName></gitConfigName>
+        <gitConfigEmail></gitConfigEmail>
+        <skipTag>false</skipTag>
+        <scmName></scmName>
+      </hudson.plugins.git.GitSCM>
+      <hudson.scm.SubversionSCM>
+        <locations>
+          <hudson.scm.SubversionSCM_-ModuleLocation>
+            <remote>svn+ssh://swakef@svn.cern.ch/reps/CMSDMWM/Infrastructure/trunk/Deployment</remote>
+            <local>cfg</local>
+          </hudson.scm.SubversionSCM_-ModuleLocation>
+        </locations>
+        <excludedRegions>.*</excludedRegions>
+        <includedRegions></includedRegions>
+        <excludedUsers></excludedUsers>
+        <excludedRevprop></excludedRevprop>
+        <excludedCommitMessages></excludedCommitMessages>
+        <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+      </hudson.scm.SubversionSCM>
+    </scms>
+  </scm>
+  <assignedNode>dmwm-wmcore2</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <com.cloudbees.jenkins.GitHubPushTrigger>
+      <spec></spec>
+    </com.cloudbees.jenkins.GitHubPushTrigger>
+    <hudson.triggers.SCMTrigger>
+      <spec>*/5 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command># run latest wmagent deploy
+set -x
+
+(cd cfg &amp;&amp; patch -p2 &lt; $HOME/wmagent_manage_oracle.patch)
+
+current=&quot;none&quot;
+[ `ls -d deploy/current/sw*/slc5_amd64_gcc461/cms/wmagent/*` ] &amp;&amp; current=$(basename $(ls -d deploy/current/sw*/slc5_amd64_gcc461/cms/wmagent/*))
+
+# TODO: if a previous build leaves a corrupt install this will fail - how solve that - redeploy each time?
+
+# if not provided get latest version
+#WMAGENT_VERSION=&quot;0.8.14&quot;
+#WMAGENT_VERSION=$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.$SCRAM_ARCH.comp | awk &apos;{print $4}&apos; | cut -d+ -f3)
+
+if [ X$WMAGENT_VERSION == X ]; then
+  WMAGENT_VERSION=$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.$SCRAM_ARCH.comp | awk &apos;{print $4}&apos; | cut -d+ -f3)
+fi
+
+#WMAGENT_VERSION=${WMAGENT_VERSION+&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.$SCRAM_ARCH.comp | awk &apos;{print $4}&apos; | cut -d+ -f3)&quot;}
+
+if [ X$current != X$WMAGENT_VERSION ]; then
+  echo &quot;Deploying wmagent@$WMAGENT_VERSION&quot;
+  if [ -e $PWD/current ]; then
+    echo &quot;Stopping agent&quot;
+    $PWD/deploy/current/config/wmagent/manage stop-agent
+    echo &quot;Stopping services&quot;
+    $PWD/deploy/current/config/wmagent/manage stop-services
+    # remove old crons
+    crontab -r || true
+    rm -rf deploy
+  fi
+
+  # deploy
+  $PWD/cfg/Deploy -r comp=comp -t $WMAGENT_VERSION -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD/deploy wmagent@${WMAGENT_VERSION}
+
+  $PWD/deploy/current/config/wmagent/manage activate-agent
+fi
+
+# stop the recursive link screwing things up (needs to be after bootstrap)
+# jenkins hangs recursively scanning dir if left in
+unlink deploy/current/sw*/var || /bin/true</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command># start / ensure services are running
+
+echo &quot;starting services&quot;
+# divorce mysql and couchdb processes so they dont get killed
+# https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
+BUILD_ID=dontKillMe $PWD/deploy/current/config/wmagent/manage start-couch</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>set +x
+. deploy/current/apps/wmagent/etc/profile.d/init.sh
+set -x
+rm -rf install
+(cd code &amp;&amp; python setup.py install --prefix=../install)</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>#export PYTHONPATH=/usr/lib/python2.6/site-packages:$PYTHONPATH
+
+set +x
+. deploy/current/apps/wmagent/etc/profile.d/init.sh
+set -x
+
+# bring in testing utilities
+export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
+
+export WMCORE_ROOT=$PWD/install
+
+export PATH=$WMCORE_ROOT/install/bin:$PATH
+
+export PYTHONPATH=$WMCORE_ROOT/lib/python2.6/site-packages:$PYTHONPATH
+export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
+
+#export DBS_CLIENT_CONFIG=/Users/stuartw/projects/Workspace/WMCore/../DBSAPI/dbs.config
+
+set +x # don&apos;t echo secrets
+. /var/lib/jenkins/WMAgent.secrets
+
+export DATABASE=$DB_URL
+
+export COUCHURL=&quot;http://${COUCH_USER}:${COUCH_PASS}@${COUCH_HOST}:${COUCH_PORT}&quot;
+set -x
+
+# working dir includes entire python source - ignore
+perl -p -i -e &apos;s/--cover-inclusive//&apos; code/setup_test.py
+
+#export NOSE_EXCLUDE=&apos;AlertGenerator&apos;
+
+# timeout tests after 5 mins
+#export NOSE_PROCESSES=1
+#export NOSE_PROCESS_TIMEOUT=300
+#export NOSE_PROCESS_RESTARTWORKER=1
+
+# cover branches but not external python modules
+#FIXME: Is this working? No.
+perl -p -i -e &apos;s/--cover-inclusive/--cover-branches/&apos; code/setup_test.py
+perl -p -i -e &quot;s/&apos;--cover-html&apos;,//&quot; code/setup_test.py
+
+# include FWCore.ParameterSet.Config
+
+export PYTHONPATH=/var/lib/jenkins/additional-library:$PYTHONPATH
+
+# remove old coverage data
+#/data/software/bin/coverage erase
+
+# run test - force success though - failure stops coverage report
+python code/setup.py test --buildBotMode=true --reallyDeleteMyDatabaseAfterEveryTest=true --testCertainPath=code/test/python || true #--testCertainPath=test/python/WMCore_t/WMBS_t || true
+# code/test/python/WMCore_t/JobStateMachine_t code/test/python/WMCore_t/WMSpec_t code/test/python/WMCore_t/WMBS_t code/test/python/WMCore_t/ResourceControl_t
+
+# Add these here as they need the same environment as the main run
+#FIXME: change so initial coverage command skips external code
+#/data/software/bin/coverage xml -i --include=$PWD/install* || true
+
+#export PYLINTHOME=$PWD/.pylint.d # force pylint cache to this workspace
+#ulimit -n 4086 # opens all source files at once (&gt; 1024)
+#/data/software/bin/pylint --rcfile=code/standards/.pylintrc -f parseable install/lib/python2.6/site-packages/* 2&gt;&amp;1 &gt; pylint.txt || true</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command># bring in testing utilities
+
+#. /var/lib/jenkins/jobs/deploy-wmagent/workspace/current/apps/wmagent/etc/profile.d/init.sh
+
+#export PYTHONPATH=$PYTHONPATH:/data/software/lib/python2.6/site-packages
+
+#export WMCORE_ROOT=$PWD/install
+#export PYTHONPATH=$WMCORE_ROOT/lib/python2.6/site-packages:$PYTHONPATH
+#export PYTHONPATH=$WMCORE_ROOT/test/python:$PYTHONPATH
+
+#set +e
+#/data/software/bin/coverage xml -i || true
+
+#/data/software/bin/pylint --rcfile=standards/.pylintrc -f parseable src/python/WMCore/* 2&gt;&amp;1 &gt; pylint.txt || true</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder>
+      <factGenerator/>
+    </hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.tasks.junit.JUnitResultArchiver>
+      <testResults>**/nosetests.xml</testResults>
+      <keepLongStdio>false</keepLongStdio>
+      <testDataPublishers/>
+    </hudson.tasks.junit.JUnitResultArchiver>
+    <org.jenkinsci.plugins.emotional__jenkins.EmotionalJenkinsPublisher/>
+  </publishers>
+  <buildWrappers/>
+</project>
