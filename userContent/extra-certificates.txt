@@ -1,0 +1,4 @@
+"/DC=ch/DC=cern/OU=computers/CN=dev-cms-reqmgr.cern.ch" cms
+"/DC=ch/DC=cern/OU=computers/CN=dev-cms-wq.cern.ch" cms
+"/DC=ch/DC=cern/OU=computers/CN=dmwm.cern.ch" cms
+"/DC=ch/DC=cern/OU=computers/CN=dmwm-agent-int.cern.ch" cms
