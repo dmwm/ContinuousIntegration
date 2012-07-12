@@ -1,4 +1,16 @@
-2,test,reqmgr,testreqmgr,/DC=ch/DC=cern/OU=computers/CN=dev-cms-reqmgr.cern.ch
-3,test,workqueue,testworkqueue,/DC=ch/DC=cern/OU=computers/CN=dev-cms-wq.cern.ch
-4,test,agent,testagent,/DC=ch/DC=cern/OU=computers/CN=dmwm-agent-int.cern.ch
-10,stuart,wakefield,swakef,/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield
+# list of users and role mappings to add to sitedb (group/role optional)
+# forename, surname, username, dn, group, role
+
+# services get operator roles
+test,reqmgr,testreqmgr,/DC=ch/DC=cern/OU=computers/CN=dev-cms-reqmgr.cern.ch,dataops,production-operator
+test,workqueue,testworkqueue,/DC=ch/DC=cern/OU=computers/CN=dev-cms-wq.cern.ch,dataops,production-operator
+test,agent,testagent,/DC=ch/DC=cern/OU=computers/CN=dmwm-agent-int.cern.ch,dataops,production-operator
+
+# reqmgr admins
+stuart,wakefield,swakef,/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield,reqmgr,admin
+
+# workqueue admins
+stuart,wakefield,swakef,/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield,dataops,production-operator
+
+# users
+stuart,wakefield,swakef,/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield,,

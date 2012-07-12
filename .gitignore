@@ -7,7 +7,7 @@ log/
 .owner
 *.bak
 fingerprints/
-userContent/
+userContent/readme.txt
 updates/
 tools/
 plugins/
