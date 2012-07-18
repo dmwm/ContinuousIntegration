@@ -17,23 +17,35 @@ Blank for latest version.</description>
           <description></description>
           <defaultValue>slc5_amd64_gcc461</defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>CMSWEB_VERSION</name>
+          <description>HTTP group tag to use. Blank for latest.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.TextParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
-    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
-  <scm class="hudson.scm.SubversionSCM">
-    <locations>
-      <hudson.scm.SubversionSCM_-ModuleLocation>
-        <remote>svn+ssh://swakef@svn.cern.ch/reps/CMSDMWM/Infrastructure/trunk/Deployment</remote>
-        <local>cfg</local>
-      </hudson.scm.SubversionSCM_-ModuleLocation>
-    </locations>
-    <excludedRegions></excludedRegions>
-    <includedRegions></includedRegions>
-    <excludedUsers></excludedUsers>
-    <excludedRevprop></excludedRevprop>
-    <excludedCommitMessages></excludedCommitMessages>
-    <workspaceUpdater class="hudson.scm.subversion.UpdateWithCleanUpdater"/>
+  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM">
+    <scms>
+      <hudson.scm.SubversionSCM>
+        <locations>
+          <hudson.scm.SubversionSCM_-ModuleLocation>
+            <remote>https://github.com/dmwm/deployment/trunk@HEAD</remote>
+            <local>deployment</local>
+          </hudson.scm.SubversionSCM_-ModuleLocation>
+          <hudson.scm.SubversionSCM_-ModuleLocation>
+            <remote>https://github.com/dmwm/WMCore/trunk@HEAD</remote>
+            <local>WMCore</local>
+          </hudson.scm.SubversionSCM_-ModuleLocation>
+        </locations>
+        <excludedRegions></excludedRegions>
+        <includedRegions></includedRegions>
+        <excludedUsers></excludedUsers>
+        <excludedRevprop></excludedRevprop>
+        <excludedCommitMessages></excludedCommitMessages>
+        <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+      </hudson.scm.SubversionSCM>
+    </scms>
   </scm>
   <assignedNode>workqueue-slaves</assignedNode>
   <canRoam>false</canRoam>
@@ -49,13 +61,16 @@ Blank for latest version.</description>
       <entries>
         <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
           <url>http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/workqueue.slc5_amd64_gcc461.comp.pre</url>
+          <proxyActivated>false</proxyActivated>
           <checkStatus>false</checkStatus>
           <statusCode>200</statusCode>
+          <checkETag>false</checkETag>
           <checkLastModificationDate>true</checkLastModificationDate>
           <inspectingContent>false</inspectingContent>
           <contentTypes/>
         </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
       </entries>
+      <labelRestriction>false</labelRestriction>
     </org.jenkinsci.plugins.urltrigger.URLTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
@@ -75,18 +90,17 @@ fi
 rm -rf install current
 # remove old cronjobs
 crontab -r || true # dont die if no old crontab
-</command>
+
+# stop old processes
+pkill -9 -f $PWD || true</command>
     </hudson.tasks.Shell>
     <hudson.tasks.Shell>
       <command>set -x
 
 rm -rf install
 
-# make workqueue deploy work in single user mode
-#patch -N -d cfg -p2 &lt; /var/lib/jenkins/0001-workqueue-0.8.15.patch
-
 # skip sudo usage - just adds to /etc etc.
-perl -p -i -e &apos;s/.*sudo.*/:/&apos; $PWD/cfg/frontend/deploy
+perl -p -i -e &apos;s/.*sudo.*/:/&apos; $PWD/deployment/frontend/deploy
 
 # link to hostcert
 mkdir -p certs
@@ -99,9 +113,17 @@ if [ X$WORKQUEUE_VERSION == X ]; then
   WORKQUEUE_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/workqueue.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
 fi
 
+if [ X${CMSWEB_VERSION} == X ]; then
+  CMSWEB_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/cmsweb.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
+fi
+
 # note single user install
 # need couchdb to get couchdb manage commands
-$PWD/cfg/Deploy -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WORKQUEUE_VERSION}
+echo &quot;$PWD/deployment/Deploy -R  cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WORKQUEUE_VERSION}&quot;
+$PWD/deployment/Deploy -R  cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb workqueue${WORKQUEUE_VERSION}
+
+# patch rpm with checkout
+( . current/apps/workqueue/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s workqueue --skip-docs)
 
 # standard deploy assumes running as root - need to change few things
 HTTPD_CONF=$PWD/state/frontend/server.conf
@@ -118,11 +140,8 @@ perl -p -i -e &apos;s/Listen 443/Listen 8443/&apos; ${HTTPD_CONF}
 perl -p -i -e &apos;s/\*:443/\*:8443/&apos; ${HTTPD_CONF}
 
 # add test agent cert credentials
-cat extra-certificates.txt &gt;&gt; current/config/frontend/extra-certificates.txt
-./sitedb-mapping.sh sitedb-mapping.txt current/auth/frontend/users.db
-
-# FIXME: Remove when updated beyond 0.8.8
-perl -p -i -e &apos;s!domain=self.getDomainName\(\)!domain=&quot;&quot;!&apos; current/apps/workqueue/lib/python2.6/site-packages/WMCore/Services/Requests.py
+[ -e extra-certificates.txt ] &amp;&amp; cat extra-certificates.txt &gt;&gt; current/config/frontend/extra-certificates.txt
+[ -e sitedb-mapping.py ] &amp;&amp; (. current/apps/workqueue/etc/profile.d/init.sh &amp;&amp; ./sitedb-mapping.py --mapping-file=sitedb-mapping.txt current/auth/frontend/users.db )
 
 # couchdb on 8443
 perl -p -i -e &apos;s!https://%s/couchdb!https://%s:8443/couchdb!&apos; current/config/workqueue/GlobalWorkQueueConfig.py
@@ -153,7 +172,7 @@ BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documen
   </publishers>
   <buildWrappers>
     <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
-      <includes>extra-certificates.txt,sitedb-mapping.sh,sitedb-mapping.txt</includes>
+      <includes>extra-certificates.txt,sitedb-mapping.py,sitedb-mapping.txt</includes>
       <excludes></excludes>
       <flatten>false</flatten>
       <includeAntExcludes>false</includeAntExcludes>
