@@ -1,0 +1,133 @@
+{
+  "actions" : [
+    {
+      
+    },
+    {
+      "parameterDefinitions" : [
+        {
+          "defaultParameterValue" : {
+            "value" : "@0.8.10"
+          },
+          "description" : "Override wmagent version in deploy script: format \"@0.8.1pre1\" etc.\nBlank for current deploy version.",
+          "name" : "WMAGENT_VERSION",
+          "type" : "StringParameterDefinition"
+        }
+      ]
+    },
+    {
+      
+    },
+    {
+      
+    },
+    {
+      
+    }
+  ],
+  "description" : "Run full deployment of a WMAgent instance",
+  "displayName" : "deploy-wmagent",
+  "displayNameOrNull" : null,
+  "name" : "deploy-wmagent",
+  "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/",
+  "buildable" : true,
+  "builds" : [
+    {
+      "number" : 244,
+      "result": "SUCCESS",
+      "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/244/"
+    },
+    {
+      "number" : 243,
+      "result": "SUCCESS",
+      "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/243/"
+    },
+    {
+      "number" : 242,
+      "result": "SUCCESS",
+      "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/242/"
+    },
+    {
+      "number" : 241,
+      "result": "SUCCESS",
+      "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/241/"
+    }
+  ],
+  "color" : "blue",
+  "firstBuild" : {
+    "number" : 3,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/3/"
+  },
+  "healthReport" : [
+    {
+      "description" : "Build stability: No recent builds failed.",
+      "iconUrl" : "health-80plus.png",
+      "score" : 100
+    }
+  ],
+  "inQueue" : false,
+  "keepDependencies" : false,
+  "lastBuild" : {
+    "number" : 244,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/244/"
+  },
+  "lastCompletedBuild" : {
+    "number" : 244,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/244/"
+  },
+  "lastFailedBuild" : {
+    "number" : 99,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/99/"
+  },
+  "lastStableBuild" : {
+    "number" : 244,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/244/"
+  },
+  "lastSuccessfulBuild" : {
+    "number" : 244,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/244/"
+  },
+  "lastUnstableBuild" : null,
+  "lastUnsuccessfulBuild" : {
+    "number" : 99,
+    "url" : "http://dmwm.cern.ch:8080/job/deploy-wmagent/99/"
+  },
+  "nextBuildNumber" : 245,
+  "property" : [
+    {
+      
+    },
+    {
+      "parameterDefinitions" : [
+        {
+          "defaultParameterValue" : {
+            "name" : "WMAGENT_VERSION",
+            "value" : "@0.8.10"
+          },
+          "description" : "Override wmagent version in deploy script: format \"@0.8.1pre1\" etc.\nBlank for current deploy version.",
+          "name" : "WMAGENT_VERSION",
+          "type" : "StringParameterDefinition"
+        }
+      ]
+    }
+  ],
+  "queueItem" : null,
+  "concurrentBuild" : false,
+  "downstreamProjects" : [
+    {
+      "name" : "WMCore-py2.6-mysql",
+      "url" : "http://dmwm.cern.ch:8080/job/WMCore-py2.6-mysql/",
+      "color" : "red"
+    }
+  ],
+  "scm" : {
+    
+  },
+  "upstreamProjects" : [
+    {
+      "name" : "deploy-workqueue",
+      "url" : "http://dmwm.cern.ch:8080/job/deploy-workqueue/",
+      "color" : "blue"
+    }
+  ]
+}
