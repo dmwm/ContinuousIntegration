@@ -2,4 +2,5 @@
 <hudson.plugins.disk__usage.DiskUsageProperty_-DiskUsageDescriptor>
   <helpRedirect/>
   <showGraph>true</showGraph>
+  <converted>true</converted>
 </hudson.plugins.disk__usage.DiskUsageProperty_-DiskUsageDescriptor>
