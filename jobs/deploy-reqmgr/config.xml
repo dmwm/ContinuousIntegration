@@ -8,8 +8,7 @@
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
           <name>REQMGR_VERSION</name>
-          <description>Override reqmgr version: format &quot;@0.8.1pre1&quot; etc.
-Blank for current deploy version.</description>
+          <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
@@ -120,11 +119,12 @@ fi
 
 # note single user install
 # need couchdb to get couchdb manage commands
-echo &quot;$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION}&quot;
-$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION}
+echo &quot;$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMGR_VERSION}&quot;
+$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMGR_VERSION}
 
 # patch rpm with checkout
 ( . current/apps/reqmgr/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmgr --skip-docs)
+( . current/apps/reqmon/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmon --skip-docs)
 
 # change data dir to patched data dir
 perl -p -i -e &apos;s!data!xdata!&apos; current/config/reqmgr/ReqMgrConfig.py
