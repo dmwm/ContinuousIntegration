@@ -20,3 +20,6 @@ war/
 .subversion/
 com.cloudbees.jenkins.GitHubPushTrigger.xml
 queue.xml
+
+# ignore others
+*
