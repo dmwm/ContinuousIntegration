@@ -54,12 +54,6 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
   <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
-    <com.cloudbees.jenkins.GitHubPushTrigger>
-      <spec></spec>
-    </com.cloudbees.jenkins.GitHubPushTrigger>
-    <hudson.triggers.SCMTrigger>
-      <spec>*/5 * * * *</spec>
-    </hudson.triggers.SCMTrigger>
     <org.jenkinsci.plugins.urltrigger.URLTrigger>
       <spec>*/5 * * * *</spec>
       <entries>
@@ -119,6 +113,9 @@ if [ X$current != X$WMAGENT_VERSION ]; then
   $PWD/current/config/wmagent/manage activate-agent
 fi
 
+# remove old crons
+crontab -r || true
+
 # patch rpm with checkout
 ( . current/apps/wmagent/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s wmagent --skip-docs)
 
@@ -131,7 +128,7 @@ unlink current/sw*/var || /bin/true</command>
 perl -p -i -e &apos;s/agentTeams =.*/agentTeams = &quot;TestTeam&quot;/&apos; current/config/wmagent/config-template.py
 
 #reduce taskarchiver timeout
-perl -p -i -e &apos;s/workflowArchiveTimeout =.*/workflowArchiveTimeout = 60/&apos; current/config/wmagent/config-template.py
+perl -p -i -e &apos;s/workflowArchiveTimeout =.*/workflowArchiveTimeout = 1/&apos; current/config/wmagent/config-template.py
 
 # reduce retries
 perl -p -i -e &apos;s/maxJobRetries =.*/maxJobRetries = 1/&apos; current/config/wmagent/config-template.py
@@ -143,6 +140,8 @@ perl -p -i -e &apos;s/maxJobRetries =.*/maxJobRetries = 1/&apos; current/config/
 perl -p -i -e &apos;s!https://cmsweb.cern.ch/couchdb/workqueue!https://dev-cms-wq.cern.ch:8443/couchdb/workqueue!&apos; current/config/wmagent/config-template.py
 # Use the mock submitter plugin - https://svnweb.cern.ch/trac/CMSDMWM/wiki/HOWTOMockGrid
 perl -p -i -e &apos;s/CondorPlugin/MockPlugin/&apos; current/config/wmagent/config-template.py
+echo &quot;config.WorkQueueManager.pollInterval = 60&quot; &gt;&gt; current/config/wmagent/config-template.py
+
 echo &quot;
 config.BossAir.section_(&apos;MockPlugin&apos;)
 config.BossAir.MockPlugin.jobRunTime = 2
@@ -167,13 +166,13 @@ echo &quot;Init agent&quot;
 # force couchdb init
 rm -f current/install/wmagent/.init
 $PWD/current/config/wmagent/manage init-agent
-rm -f current/install/wmagent/.init
-$PWD/current/config/wmagent/manage init-agent || /bin/true # retry to ensure all inited
+#rm -f current/install/wmagent/.init
+#$PWD/current/config/wmagent/manage init-agent || /bin/true # retry to ensure all inited
 
 # add sites
-current/config/wmagent/manage execute-agent wmagent-resource-control --add-all-sites --plugin=MockPlugin  || /bin/true # site may already exist
+current/config/wmagent/manage execute-agent wmagent-resource-control --add-all-sites --plugin=MockPlugin --running-slots=100  || /bin/true # sites may already exist
 # CERN not added by above?
-current/config/wmagent/manage execute-agent wmagent-resource-control --site-name=T1_CH_CERN --running-slots=10 --se-name=srm-cms.cern.ch --ce-name=ce.cern.ch --plugin=MockPlugin --cms-name=T1_CH_CERN || /bin/true # site may already exist
+current/config/wmagent/manage execute-agent wmagent-resource-control --site-name=T1_CH_CERN --running-slots=100 --se-name=srm-cms.cern.ch --ce-name=ce.cern.ch --plugin=MockPlugin --cms-name=T1_CH_CERN || /bin/true # site may already exist
 
 echo &quot;start agent&quot;
 $PWD/current/config/wmagent/manage stop-agent
