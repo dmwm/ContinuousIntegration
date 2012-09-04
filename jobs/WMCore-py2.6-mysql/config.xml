@@ -2,6 +2,12 @@
 <project>
   <actions/>
   <description></description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>400</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
+  </logRotator>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.plugins.trac.TracProjectProperty>
@@ -25,7 +31,6 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
         </hudson.model.TextParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
-    <hudson.plugins.disk__usage.DiskUsageProperty/>
   </properties>
   <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM">
     <scms>
@@ -43,6 +48,7 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
             <name>svnmaster</name>
           </hudson.plugins.git.BranchSpec>
         </branches>
+        <disableSubmodules>false</disableSubmodules>
         <recursiveSubmodules>false</recursiveSubmodules>
         <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
         <authorOrCommitter>false</authorOrCommitter>
@@ -54,6 +60,7 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
         <gitTool>Default</gitTool>
         <submoduleCfg class="list"/>
         <relativeTargetDir>code</relativeTargetDir>
+        <reference></reference>
         <excludedRegions></excludedRegions>
         <excludedUsers></excludedUsers>
         <gitConfigName></gitConfigName>
@@ -77,7 +84,7 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
       </hudson.scm.SubversionSCM>
     </scms>
   </scm>
-  <assignedNode>wmcore-unit-test-slaves</assignedNode>
+  <assignedNode>dmwm-wmcore</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
@@ -116,18 +123,21 @@ fi
 
 if [ X$current != X$WMAGENT_VERSION ]; then
   echo &quot;Deploying wmagent@$WMAGENT_VERSION&quot;
-  if [ -e $PWD/current ]; then
+  if [ -e $PWD/deploy ]; then
     echo &quot;Stopping agent&quot;
-    $PWD/deploy/current/config/wmagent/manage stop-agent
+    [ -e $PWD/deploy/current/config/wmagent/manage ] &amp;&amp; { $PWD/deploy/current/config/wmagent/manage stop-agent || true; }
     echo &quot;Stopping services&quot;
-    $PWD/deploy/current/config/wmagent/manage stop-services
+    [ -e $PWD/deploy/current/config/wmagent/manage ] &amp;&amp; { $PWD/deploy/current/config/wmagent/manage stop-services || true; }
     # remove old crons
     crontab -r || true
-    rm -rf deploy
+    # hard kill any orphan processes
+    pkill -9 -f $PWD/deploy || true
+    rm -rf $PWD/deploy
   fi
 
   # deploy
   $PWD/cfg/Deploy -r comp=comp -t $WMAGENT_VERSION -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD/deploy wmagent@${WMAGENT_VERSION}
+fi
 
   # force mysql to a reasonable size
   perl -p -i -e &apos;s/set-variable = innodb_buffer_pool_size=2G/set-variable = innodb_buffer_pool_size=50M/&apos; deploy/current/config/mysql/my.cnf
@@ -137,7 +147,6 @@ if [ X$current != X$WMAGENT_VERSION ]; then
   perl -p -i -e &apos;s/tmp_table_size=2048M/tmp_table_size=100M/&apos; deploy/current/config/mysql/my.cnf
 
   $PWD/deploy/current/config/wmagent/manage activate-agent
-fi
 
 # stop the recursive link screwing things up (needs to be after bootstrap)
 # jenkins hangs recursively scanning dir if left in
