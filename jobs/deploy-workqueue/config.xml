@@ -53,9 +53,6 @@ Blank for latest version.</description>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
-    <hudson.triggers.SCMTrigger>
-      <spec>*/5 * * * *</spec>
-    </hudson.triggers.SCMTrigger>
     <org.jenkinsci.plugins.urltrigger.URLTrigger>
       <spec>*/5 * * * *</spec>
       <entries>
@@ -65,7 +62,7 @@ Blank for latest version.</description>
           <checkStatus>false</checkStatus>
           <statusCode>200</statusCode>
           <checkETag>false</checkETag>
-          <checkLastModificationDate>true</checkLastModificationDate>
+          <checkLastModificationDate>false</checkLastModificationDate>
           <inspectingContent>false</inspectingContent>
           <contentTypes/>
         </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
@@ -146,6 +143,10 @@ perl -p -i -e &apos;s/\*:443/\*:8443/&apos; ${HTTPD_CONF}
 # couchdb on 8443
 perl -p -i -e &apos;s!https://%s/couchdb!https://%s:8443/couchdb!&apos; current/config/workqueue/GlobalWorkQueueConfig.py
 perl -p -i -e &apos;s!https://%s/reqmgr/reqMgr&quot; % HOST!https://dev-cms-reqmgr.cern.ch:8443/reqmgr/reqMgr&quot;!&apos; current/config/workqueue/GlobalWorkQueueConfig.py
+
+# increase frequency of cron jobs - reduce testing turnaround
+(crontab -l &amp;&amp; echo &quot;*/2 * * * * $PWD/current/config/workqueue/workqueue_task reqmgr_sync&quot;) | crontab -
+(crontab -l &amp;&amp; echo &quot;1-59/2 * * * * $PWD/current/config/workqueue/workqueue_task housekeep&quot;) | crontab -
 
 # divorce processes so they dont get killed
 # https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
