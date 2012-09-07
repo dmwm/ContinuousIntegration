@@ -142,10 +142,13 @@ perl -p -i -e &apos;s!https://cmsweb.cern.ch/couchdb/workqueue!https://dev-cms-w
 perl -p -i -e &apos;s/CondorPlugin/MockPlugin/&apos; current/config/wmagent/config-template.py
 echo &quot;config.WorkQueueManager.pollInterval = 60&quot; &gt;&gt; current/config/wmagent/config-template.py
 
+# reduce polling intervals
+perl -p -i -e &apos;s/.pollInterval = .*/.pollInterval = 30/&apos; current/config/wmagent/config-template.py
+
 echo &quot;
 config.BossAir.section_(&apos;MockPlugin&apos;)
-config.BossAir.MockPlugin.jobRunTime = 2
-config.BossAir.MockPlugin.mockPluginProcesses = 4
+config.BossAir.MockPlugin.jobRunTime = 1
+config.BossAir.MockPlugin.mockPluginProcesses = 10
 config.BossAir.MockPlugin.fakeReport = &apos;../../../../WMCore/test/python/WMCore_t/BossAir_t/FakeReport.pkl&apos;
 config.BossAir.MockPlugin.lcFakeReport = &apos;../../../../WMCore/test/python/WMCore_t/BossAir_t/LogCollectFakeReport.pkl&apos;
 &quot; &gt;&gt; current/config/wmagent/config-template.py</command>
