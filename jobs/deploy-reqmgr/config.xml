@@ -8,7 +8,8 @@
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
           <name>REQMGR_VERSION</name>
-          <description></description>
+          <description>Override reqmgr version: format &quot;@0.8.1pre1&quot; etc.
+Blank for current deploy version.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
@@ -21,12 +22,17 @@
           <description>HTTP group tag to use. Blank for latest.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REQMON_VERSION</name>
+          <description>Reqmon tag to use</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
   </properties>
-  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM">
+  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM" plugin="multiple-scms@0.2">
     <scms>
-      <hudson.scm.SubversionSCM>
+      <hudson.scm.SubversionSCM plugin="subversion@1.42">
         <locations>
           <hudson.scm.SubversionSCM_-ModuleLocation>
             <remote>https://github.com/dmwm/deployment/trunk@HEAD</remote>
@@ -55,7 +61,7 @@
     <hudson.triggers.SCMTrigger>
       <spec>*/5 * * * *</spec>
     </hudson.triggers.SCMTrigger>
-    <org.jenkinsci.plugins.urltrigger.URLTrigger>
+    <org.jenkinsci.plugins.urltrigger.URLTrigger plugin="urltrigger@0.23">
       <spec>*/5 * * * *</spec>
       <entries>
         <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
@@ -65,8 +71,22 @@
           <statusCode>200</statusCode>
           <checkETag>false</checkETag>
           <checkLastModificationDate>false</checkLastModificationDate>
-          <inspectingContent>false</inspectingContent>
-          <contentTypes/>
+          <inspectingContent>true</inspectingContent>
+          <contentTypes>
+            <org.jenkinsci.plugins.urltrigger.content.SimpleContentType/>
+          </contentTypes>
+        </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+        <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+          <url>http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/reqmon.slc5_amd64_gcc461.comp.pre</url>
+          <proxyActivated>false</proxyActivated>
+          <checkStatus>false</checkStatus>
+          <statusCode>200</statusCode>
+          <checkETag>false</checkETag>
+          <checkLastModificationDate>false</checkLastModificationDate>
+          <inspectingContent>true</inspectingContent>
+          <contentTypes>
+            <org.jenkinsci.plugins.urltrigger.content.SimpleContentType/>
+          </contentTypes>
         </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
       </entries>
       <labelRestriction>false</labelRestriction>
@@ -113,14 +133,18 @@ if [ X$REQMGR_VERSION == X ]; then
   REQMGR_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/reqmgr.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
 fi
 
+if [ X$REQMON_VERSION == X ]; then
+  REQMON_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/reqmon.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
+fi
+
 if [ X${CMSWEB_VERSION} == X ]; then
   CMSWEB_VERSION=&quot;@&quot;$(curl -s http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/cmsweb.$SCRAM_ARCH.comp.pre | awk &apos;{print $4}&apos; | cut -d+ -f3)
 fi
 
 # note single user install
 # need couchdb to get couchdb manage commands
-echo &quot;$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMGR_VERSION}&quot;
-$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMGR_VERSION}
+echo &quot;$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMON_VERSION}&quot;
+$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMON_VERSION}
 
 # patch rpm with checkout
 ( . current/apps/reqmgr/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmgr --skip-docs)
@@ -167,7 +191,7 @@ BUILD_ID=dontKillMe $PWD/current/config/reqmgr/manage start &apos;I did read doc
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder plugin="chucknorris@0.4">
       <factGenerator/>
     </hudson.plugins.chucknorris.CordellWalkerRecorder>
     <hudson.tasks.BuildTrigger>
@@ -178,10 +202,10 @@ BUILD_ID=dontKillMe $PWD/current/config/reqmgr/manage start &apos;I did read doc
         <color>YELLOW</color>
       </threshold>
     </hudson.tasks.BuildTrigger>
-    <org.jenkinsci.plugins.emotional__jenkins.EmotionalJenkinsPublisher/>
+    <org.jenkinsci.plugins.emotional__jenkins.EmotionalJenkinsPublisher plugin="emotional-jenkins-plugin@1.1"/>
   </publishers>
   <buildWrappers>
-    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper plugin="copy-to-slave@1.4">
       <includes>extra-certificates.txt,sitedb-mapping.py,sitedb-mapping.txt</includes>
       <excludes></excludes>
       <flatten>false</flatten>
