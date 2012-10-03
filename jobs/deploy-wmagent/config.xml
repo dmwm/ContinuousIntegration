@@ -113,7 +113,7 @@ if [ X$current != X$WMAGENT_VERSION ]; then
   fi
 
   # deploy
-  $PWD/deployment/Deploy -r comp=comp -t $WMAGENT_VERSION -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD wmagent@${WMAGENT_VERSION}
+  $PWD/deployment/Deploy -R wmagent-dev@${WMAGENT_VERSION} -r comp=comp -t $WMAGENT_VERSION -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin/devtools wmagent
 
   # force mysql to a reasonable size
   perl -p -i -e &apos;s/set-variable = innodb_buffer_pool_size=2G/set-variable = innodb_buffer_pool_size=50M/&apos; current/config/mysql/my.cnf
