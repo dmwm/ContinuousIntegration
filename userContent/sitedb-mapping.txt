@@ -8,6 +8,8 @@ test,agent,testagent,/DC=ch/DC=cern/OU=computers/CN=dmwm-agent-int.cern.ch,datao
 
 # reqmgr admins
 stuart,wakefield,swakef,/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield,reqmgr,admin
+# integration tests (run on agent node) need to abort request
+test,agent,testagent,/DC=ch/DC=cern/OU=computers/CN=dmwm-agent-int.cern.ch,reqmgr,admin
 
 # workqueue admins
 stuart,wakefield,swakef,/C=UK/O=eScience/OU=Imperial/L=Physics/CN=stuart wakefield,dataops,production-operator
