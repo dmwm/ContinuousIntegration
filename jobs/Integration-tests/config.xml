@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<matrix-project>
+  <actions/>
+  <description>Run integration tests. Marked with &quot;lifecycle&quot; attribute.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.7.2">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>1</maxConcurrentTotal>
+      <categories>
+        <string>full-deploy-infrastructure</string>
+      </categories>
+      <throttleEnabled>true</throttleEnabled>
+      <throttleOption>category</throttleOption>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>0 */2 * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>true</concurrentBuild>
+  <customWorkspace>workspace/deploy-wmagent</customWorkspace>
+  <axes>
+    <hudson.matrix.LabelAxis>
+      <name>SLAVE</name>
+      <values>
+        <string>agent-slaves</string>
+      </values>
+    </hudson.matrix.LabelAxis>
+    <hudson.matrix.TextAxis>
+      <name>TESTNAME</name>
+      <values>
+        <string>MonteCarloFromGenLifeCycle</string>
+        <string>MonteCarloLifeCycle</string>
+        <string>ReDigiLifeCycle</string>
+        <string>ReRecoLifeCycle</string>
+        <string>ReRecoSkimLifeCycle</string>
+        <string>RequestCancelation</string>
+        <string>TaskChainLifeCycle</string>
+      </values>
+    </hudson.matrix.TextAxis>
+  </axes>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>export PYTHONPATH=$PYTHONPATH:$PWD/additional-libs/python
+
+DEPLOY_ROOT=$PWD/../../../..
+
+. $DEPLOY_ROOT/current/apps/wmagent/etc/profile.d/init.sh
+. $DEPLOY_ROOT/current/apps/wmcore-devtools/etc/profile.d/init.sh
+
+export REQMGRBASEURL=&quot;https://dev-cms-reqmgr.cern.ch:8443&quot;
+
+export X509_USER_CERT=/etc/grid-security/hostcert.pem
+export X509_USER_KEY=/etc/grid-security/hostkey.pem
+
+(cd $DEPLOY_ROOT/WMCore &amp;&amp; nosetests -x --attr=lifecycle --with-xunit --xunit-file=$WORKSPACE/$TESTNAME-xunit.xml test/python/Integration_t/${TESTNAME}_t.py)</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder plugin="chucknorris@0.4">
+      <factGenerator/>
+    </hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.tasks.junit.JUnitResultArchiver>
+      <testResults>*-xunit.xml</testResults>
+      <keepLongStdio>false</keepLongStdio>
+      <testDataPublishers/>
+    </hudson.tasks.junit.JUnitResultArchiver>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.build__timeout.BuildTimeoutWrapper plugin="build-timeout@1.10">
+      <timeoutMinutes>3</timeoutMinutes>
+      <failBuild>false</failBuild>
+      <writingDescription>false</writingDescription>
+      <timeoutPercentage>300</timeoutPercentage>
+      <timeoutType>elastic</timeoutType>
+      <timeoutMinutesElasticDefault>60</timeoutMinutesElasticDefault>
+    </hudson.plugins.build__timeout.BuildTimeoutWrapper>
+    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper plugin="copy-to-slave@1.4">
+      <includes>additional-libs/python/FWCore/</includes>
+      <excludes></excludes>
+      <flatten>false</flatten>
+      <includeAntExcludes>false</includeAntExcludes>
+      <hudsonHomeRelative>false</hudsonHomeRelative>
+      <relativeTo>userContent</relativeTo>
+    </com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+  </buildWrappers>
+  <executionStrategy class="hudson.matrix.DefaultMatrixExecutionStrategyImpl">
+    <runSequentially>false</runSequentially>
+  </executionStrategy>
+</matrix-project>
