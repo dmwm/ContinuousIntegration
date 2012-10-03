@@ -24,10 +24,19 @@ Blank for latest version.</description>
         </hudson.model.TextParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.7.2">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>1</maxConcurrentTotal>
+      <categories>
+        <string>full-deploy-infrastructure</string>
+      </categories>
+      <throttleEnabled>true</throttleEnabled>
+      <throttleOption>category</throttleOption>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
   </properties>
-  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM">
+  <scm class="org.jenkinsci.plugins.multiplescms.MultiSCM" plugin="multiple-scms@0.2">
     <scms>
-      <hudson.scm.SubversionSCM>
+      <hudson.scm.SubversionSCM plugin="subversion@1.42">
         <locations>
           <hudson.scm.SubversionSCM_-ModuleLocation>
             <remote>https://github.com/dmwm/deployment/trunk@HEAD</remote>
@@ -53,7 +62,7 @@ Blank for latest version.</description>
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
-    <org.jenkinsci.plugins.urltrigger.URLTrigger>
+    <org.jenkinsci.plugins.urltrigger.URLTrigger plugin="urltrigger@0.23">
       <spec>*/5 * * * *</spec>
       <entries>
         <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
@@ -159,11 +168,11 @@ BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documen
     </hudson.tasks.Shell>
   </builders>
   <publishers>
-    <hudson.plugins.chucknorris.CordellWalkerRecorder>
+    <hudson.plugins.chucknorris.CordellWalkerRecorder plugin="chucknorris@0.4">
       <factGenerator/>
     </hudson.plugins.chucknorris.CordellWalkerRecorder>
     <hudson.tasks.BuildTrigger>
-      <childProjects>deploy-wmagent, wmagent-int</childProjects>
+      <childProjects>deploy-wmagent,deploy-wmagent</childProjects>
       <threshold>
         <name>UNSTABLE</name>
         <ordinal>1</ordinal>
@@ -172,7 +181,7 @@ BUILD_ID=dontKillMe current/config/couchdb/manage start &apos;I did read documen
     </hudson.tasks.BuildTrigger>
   </publishers>
   <buildWrappers>
-    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper plugin="copy-to-slave@1.4">
       <includes>extra-certificates.txt,sitedb-mapping.py,sitedb-mapping.txt</includes>
       <excludes></excludes>
       <flatten>false</flatten>

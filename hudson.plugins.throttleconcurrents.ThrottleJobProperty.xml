@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hudson.plugins.throttleconcurrents.ThrottleJobProperty_-DescriptorImpl plugin="throttle-concurrents@1.7.2">
+  <helpRedirect/>
+  <categories>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty_-ThrottleCategory>
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>1</maxConcurrentTotal>
+      <categoryName>full-deploy-infrastructure</categoryName>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty_-ThrottleCategory>
+  </categories>
+</hudson.plugins.throttleconcurrents.ThrottleJobProperty_-DescriptorImpl>
