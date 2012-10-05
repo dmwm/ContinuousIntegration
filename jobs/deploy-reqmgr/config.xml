@@ -163,6 +163,9 @@ echo &quot;couchapp push $PWD/WMCore/src/couchapps/GroupUser http://localhost:59
 ( . current/apps/reqmgr/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmgr --skip-docs)
 #( . current/apps/reqmon/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmon --skip-docs)
 
+# delete old requests - they are no longer available in couch so they should be removed from the db also
+( . current/apps/reqmgr/etc/profile.d/init.sh &amp;&amp; export WMCORE_ROOT=$REGMGR_ROOT WMAGENT_CONFIG=current/config/reqmgr/ReqMgrConfig.py PYTHONPATH=$PWD/current/auth/reqmgr:$PYTHONPATH requestDb delete all &gt; /dev/null)
+
 # change data dir to patched data dir
 perl -p -i -e &apos;s!data!xdata!&apos; current/config/reqmgr/ReqMgrConfig.py
 
