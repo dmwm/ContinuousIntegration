@@ -155,6 +155,10 @@ fi
 echo &quot;$PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMON_VERSION}&quot;
 $PWD/deployment/Deploy -R cmsweb${CMSWEB_VERSION} -p $HOME/auth -t install -r comp=comp.pre -A $SCRAM_ARCH -s &apos;prep sw post&apos; $PWD admin frontend backend couchdb reqmgr${REQMGR_VERSION} reqmon${REQMON_VERSION}
 
+# add in acdc couchapps - needed for integration tests
+echo &quot;couchapp push $PWD/WMCore/src/couchapps/ACDC http://localhost:5984/wmagent_acdc&quot; &gt;&gt; state/couchdb/stagingarea/acdc
+echo &quot;couchapp push $PWD/WMCore/src/couchapps/GroupUser http://localhost:5984/wmagent_acdc&quot; &gt;&gt; state/couchdb/stagingarea/acdc
+
 # patch rpm with checkout
 ( . current/apps/reqmgr/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmgr --skip-docs)
 ( . current/apps/reqmon/etc/profile.d/init.sh &amp;&amp; cd WMCore &amp;&amp; wmc-dist-patch -s reqmon --skip-docs)
