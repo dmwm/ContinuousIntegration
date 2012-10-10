@@ -68,6 +68,7 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
     </hudson.triggers.SCMTrigger>
     <org.jenkinsci.plugins.urltrigger.URLTrigger plugin="urltrigger@0.23">
       <spec>*/5 * * * *</spec>
+      <triggerLabel>dmwm-agent-int</triggerLabel>
       <entries>
         <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
           <url>http://cms-dmwm-builds.web.cern.ch/cms-dmwm-builds/wmagent.slc5_amd64_gcc461.comp</url>
@@ -80,7 +81,7 @@ Blank for current deploy version. Only affects rpm install not code checkout.</d
           <contentTypes/>
         </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
       </entries>
-      <labelRestriction>false</labelRestriction>
+      <labelRestriction>true</labelRestriction>
     </org.jenkinsci.plugins.urltrigger.URLTrigger>
   </triggers>
   <concurrentBuild>false</concurrentBuild>
@@ -105,11 +106,6 @@ if [ X$current != X$WMAGENT_VERSION ]; then
     [ -e $PWD/current/config/wmagent/config.py ] &amp;&amp; $PWD/current/config/wmagent/manage stop-agent
     echo &quot;Stopping services&quot;
     [ -e $PWD/current/config/wmagent/config.py ] &amp;&amp; $PWD/current/config/wmagent/manage stop-services
-    # remove old crons
-    crontab -r || true
-    rm -rf deploy
-    # stop old processes
-    pkill -9 -f $PWD || true
   fi
 
   # deploy
@@ -171,10 +167,14 @@ config.BossAir.MockPlugin.lcFakeReport = &apos;../../../../WMCore/test/python/WM
 export X509_USER_CERT=/etc/grid-security/hostcert.pem
 export X509_USER_KEY=/etc/grid-security/hostkey.pem
 
+# stop old processes
+$PWD/current/config/wmagent/manage stop-services || rm -f current/install/mysql/logs/mysql.sock
+$PWD/current/config/wmagent/manage stop-agent || true
+pkill -9 -f $PWD || true
+
 echo &quot;starting services&quot;
 # divorce mysql and couchdb processes so they dont get killed
 # https://wiki.jenkins-ci.org/display/JENKINS/ProcessTreeKiller
-$PWD/current/config/wmagent/manage stop-services
 BUILD_ID=dontKillMe $PWD/current/config/wmagent/manage start-services
 
 echo &quot;Init agent&quot;
@@ -190,7 +190,6 @@ current/config/wmagent/manage execute-agent wmagent-resource-control --add-all-s
 current/config/wmagent/manage execute-agent wmagent-resource-control --site-name=T1_CH_CERN --running-slots=100 --se-name=srm-cms.cern.ch --ce-name=ce.cern.ch --plugin=MockPlugin --cms-name=T1_CH_CERN || /bin/true # site may already exist
 
 echo &quot;start agent&quot;
-$PWD/current/config/wmagent/manage stop-agent
 BUILD_ID=dontKillMe $PWD/current/config/wmagent/manage start-agent</command>
     </hudson.tasks.Shell>
   </builders>
