@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Run acdc integration test.&#xd;
+&#xd;
+Run after RequestCancelation test, as it clones that request.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.7.2">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>1</maxConcurrentTotal>
+      <categories>
+        <string>full-deploy-infrastructure</string>
+      </categories>
+      <throttleEnabled>true</throttleEnabled>
+      <throttleOption>category</throttleOption>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <assignedNode>agent-slaves</assignedNode>
+  <canRoam>false</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>true</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>true</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector"/>
+  <concurrentBuild>true</concurrentBuild>
+  <customWorkspace>workspace/deploy-wmagent</customWorkspace>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>export PYTHONPATH=$PYTHONPATH:$PWD/additional-libs/python
+
+DEPLOY_ROOT=$PWD
+
+. $DEPLOY_ROOT/current/apps/wmagent/etc/profile.d/init.sh
+. $DEPLOY_ROOT/current/apps/wmcore-devtools/etc/profile.d/init.sh
+
+export REQMGRBASEURL=&quot;https://dev-cms-reqmgr.cern.ch:8443&quot;
+
+export X509_USER_CERT=/etc/grid-security/hostcert.pem
+export X509_USER_KEY=/etc/grid-security/hostkey.pem
+
+(cd $DEPLOY_ROOT/WMCore &amp;&amp; nosetests -x --attr=lifecycle --with-xunit --xunit-file=$WORKSPACE/ACDCLifeCycle-xunit.xml test/python/Integration_t/ACDCLifeCycle_t.py)</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.junit.JUnitResultArchiver>
+      <testResults>ACDCLifeCycle-xunit.xml</testResults>
+      <keepLongStdio>false</keepLongStdio>
+      <testDataPublishers/>
+    </hudson.tasks.junit.JUnitResultArchiver>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.build__timeout.BuildTimeoutWrapper plugin="build-timeout@1.10">
+      <timeoutMinutes>3</timeoutMinutes>
+      <failBuild>false</failBuild>
+      <writingDescription>false</writingDescription>
+      <timeoutPercentage>300</timeoutPercentage>
+      <timeoutType>elastic</timeoutType>
+      <timeoutMinutesElasticDefault>60</timeoutMinutesElasticDefault>
+    </hudson.plugins.build__timeout.BuildTimeoutWrapper>
+    <com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper plugin="copy-to-slave@1.4">
+      <includes>additional-libs/python/FWCore/</includes>
+      <excludes></excludes>
+      <flatten>false</flatten>
+      <includeAntExcludes>false</includeAntExcludes>
+      <hudsonHomeRelative>false</hudsonHomeRelative>
+      <relativeTo>userContent</relativeTo>
+    </com.michelin.cio.hudson.plugins.copytoslave.CopyToSlaveBuildWrapper>
+  </buildWrappers>
+</project>
