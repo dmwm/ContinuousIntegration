@@ -103,9 +103,12 @@ if [ X$current != X$WMAGENT_VERSION ]; then
   echo &quot;Deploying wmagent@$WMAGENT_VERSION&quot;
   if [ -e $PWD/current ]; then
     echo &quot;Stopping agent&quot;
-    [ -e $PWD/current/config/wmagent/config.py ] &amp;&amp; $PWD/current/config/wmagent/manage stop-agent
+    [ -e $PWD/current/config/wmagent/config.py ] &amp;&amp; $PWD/current/config/wmagent/manage stop-agent || true
     echo &quot;Stopping services&quot;
-    [ -e $PWD/current/config/wmagent/config.py ] &amp;&amp; $PWD/current/config/wmagent/manage stop-services
+    [ -e $PWD/current/config/wmagent/config.py ] &amp;&amp; $PWD/current/config/wmagent/manage stop-services || true
+
+    # delete old version
+    rm -rf $(readlink current) &amp;&amp; rm -f current
   fi
 
   # deploy
