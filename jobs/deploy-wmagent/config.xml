@@ -118,8 +118,10 @@ if [ X$current != X$WMAGENT_VERSION ]; then
   perl -p -i -e &apos;s/max_heap_table_size=2048M/max_heap_table_size=100M/&apos; current/config/mysql/my.cnf
   perl -p -i -e &apos;s/tmp_table_size=2048M/tmp_table_size=100M/&apos; current/config/mysql/my.cnf
 
-  $PWD/current/config/wmagent/manage activate-agent
 fi
+
+# copy new config template from checkout area
+WMCORE_ROOT=$PWD/WMCore $PWD/current/config/wmagent/manage activate-agent
 
 # remove old crons
 crontab -r || true
