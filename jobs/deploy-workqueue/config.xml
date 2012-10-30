@@ -75,6 +75,16 @@ Blank for latest version.</description>
           <inspectingContent>false</inspectingContent>
           <contentTypes/>
         </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+        <org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
+          <url>http://dev-cms-wq.cern.ch:8443/couchdb</url>
+          <proxyActivated>false</proxyActivated>
+          <checkStatus>true</checkStatus>
+          <statusCode>500</statusCode>
+          <checkETag>false</checkETag>
+          <checkLastModificationDate>false</checkLastModificationDate>
+          <inspectingContent>false</inspectingContent>
+          <contentTypes/>
+        </org.jenkinsci.plugins.urltrigger.URLTriggerEntry>
       </entries>
       <labelRestriction>false</labelRestriction>
     </org.jenkinsci.plugins.urltrigger.URLTrigger>
