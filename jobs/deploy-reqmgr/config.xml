@@ -68,7 +68,7 @@ Blank for current deploy version.</description>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <triggers class="vector">
     <hudson.triggers.SCMTrigger>
-      <spec>*/5 * * * *</spec>
+      <spec>0 * * * *</spec>
     </hudson.triggers.SCMTrigger>
     <org.jenkinsci.plugins.urltrigger.URLTrigger plugin="urltrigger@0.23">
       <spec>*/5 * * * *</spec>
